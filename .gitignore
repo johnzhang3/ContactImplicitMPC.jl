@@ -37,3 +37,5 @@ Manifest.toml
 /src/simulation/flamingo/slope/
 
 *.txt
+
+.DS_Store
