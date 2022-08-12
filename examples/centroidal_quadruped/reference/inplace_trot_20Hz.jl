@@ -1,6 +1,9 @@
 # ## model
+
+using ContactImplicitMPC
 include("trajopt_model_v2.jl")
 
+include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped/visuals.jl"))
 # ## horizon
 h = 0.05
 T = 16
@@ -24,7 +27,7 @@ dyn = [d1, [dt for t = 2:T-1]...]
 
 # ## initial conditions
 body_height = 0.3
-foot_x = 0.17
+foot_x = 0.2
 foot_y = 0.17
 foot_height = 0.08
 
@@ -57,6 +60,11 @@ qM2[12 + 3] += foot_height # back left
 
 # Terminal Q
 qT = copy(q1)
+
+
+vis = Visualizer()
+render(vis)
+
 
 visualize!(vis, model, [qM2], Δt=h);
 
@@ -115,6 +123,7 @@ xM = x_ref[Tm]
 xT = x_ref[T]
 
 visualize!(vis, model, q_ref, Δt=h);
+
 
 plot(hcat(q_ref...)', labels="")
 
@@ -208,7 +217,7 @@ for t = 1:T
             # x[9:3:18] - x_ref[t][9:3:18];
             ]
         end
-        push!(cons, DTO.Constraint(constraints_1, nx, nu, idx_ineq=collect(16 .+ (1:28))))
+        push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28))))
     elseif t == T
         function constraints_T(x, u, w)
             [
@@ -221,7 +230,7 @@ for t = 1:T
             # x[9:3:18] - x_ref[t][9:3:18];
             ]
         end
-        push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, idx_ineq=collect(0 .+ (1:8))))
+        push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8))))
     else
         function constraints_t(x, u, w)
             [
@@ -236,13 +245,13 @@ for t = 1:T
             # x[9:3:18] - x_ref[t][9:3:18];
             ]
         end
-        push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, idx_ineq=collect(16 .+ (1:32))) )
+        push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32))) )
     end
 end
 
 # ## problem
 tolerance = 1.0e-3
-p = DTO.solver(dyn, obj, cons, bnds,
+p = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         max_iter=2000,
         tol=tolerance,

@@ -2,23 +2,19 @@ module ContactImplicitMPC
 
 using BenchmarkTools
 using Colors
+using MeshCat
+using MeshCatMechanisms
+using Plots
 using CoordinateTransformations
-using FFMPEG
 using FileIO
 using ForwardDiff
-using GeometryBasics
 using IfElse
 using InteractiveUtils
 using JLD2
 using LinearAlgebra
 using Logging
 using QDLDL
-using MeshCat
-using MeshCatMechanisms
-using Meshing
-using MeshIO
 using Parameters
-using Plots
 using Random
 using Rotations
 using SparseArrays
@@ -29,6 +25,7 @@ using Scratch
 import Scratch: get_scratch!
 using Test
 using RoboDojo
+using GeometryBasics
 import RoboDojo: LinearSolver, LUSolver, Model, ResidualMethods, Space, Disturbances, IndicesZ, InteriorPoint, EmptySolver, Policy, Trajectory, GradientTrajectory, InteriorPointOptions, IndicesOptimization, interior_point, interior_point_solve!, bilinear_violation, residual_violation, general_correction_term!, r!, rz!, rθ!, linear_solve!, lu_solver, empty_policy, empty_disturbances, friction_coefficients, SimulatorStatistics, SimulatorOptions, indices_θ, num_data, initialize_z!, initialize_θ!, indices_z, indices_θ, simulate!, policy, process!, Simulator
 using DirectTrajectoryOptimization
 
@@ -114,14 +111,14 @@ include("dynamics/visuals.jl")
 include("dynamics/visual_utils.jl")
 include("visuals.jl")
 
-include("dynamics/particle_2D/visuals.jl")
-include("dynamics/particle/visuals.jl")
-include("dynamics/hopper_2D/visuals.jl")
-include("dynamics/hopper_3D/visuals.jl")
-include("dynamics/quadruped/visuals.jl")
-include("dynamics/flamingo/visuals.jl")
-include("dynamics/pushbot/visuals.jl")
-include("dynamics/walledcartpole/visuals.jl")
+# include("dynamics/particle_2D/visuals.jl")
+# include("dynamics/particle/visuals.jl")
+# include("dynamics/hopper_2D/visuals.jl")
+# include("dynamics/hopper_3D/visuals.jl")
+# include("dynamics/quadruped/visuals.jl")
+# include("dynamics/flamingo/visuals.jl")
+# include("dynamics/pushbot/visuals.jl")
+# include("dynamics/walledcartpole/visuals.jl")
 include("dynamics/centroidal_quadruped/visuals.jl")
 include("dynamics/centroidal_quadruped_box/visuals.jl")
 include("dynamics/point_foot_quadruped/visuals.jl")
@@ -250,11 +247,11 @@ export
     index_equr,
     index_ortr,
     index_socr,
-    visualize_meshrobot!,
-    visualize_robot!,
-    visualize_force!,
-    visualize_disturbance!,
-    visualize_payload!,
+    # visualize_meshrobot!,
+    # visualize_robot!,
+    # visualize_force!,
+    # visualize_disturbance!,
+    # visualize_payload!,
     process!,
     contact_trajectory,
     pack_z,
@@ -290,8 +287,8 @@ export
     slope_smooth_2D_lc,
     flat_2D_lc,
     flat_3D_lc,
-    plot_surface!,
-    stairs!,
+    # plot_surface!,
+    # stairs!,
     Simulator,
     set_trajectory!,
     initialize_z!

@@ -1,10 +1,12 @@
 # ## model
+using Revise
+using ContactImplicitMPC
 include("trajopt_model_v2.jl")
 
 # ## horizon
 h = 0.05
-T = 54
-Tm = 6 # mid point for a swing / stance change
+T = 102
+Tm = 12 # mid point for a swing / stance change
 
 # ## centroidal_quadruped
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -27,7 +29,7 @@ dyn = [d1, [dt for t = 2:T-1]...]
 # ## initial conditions
 body_height = 0.3
 foot_x = 0.17
-foot_y = 0.17
+foot_y = 0.15
 foot_height = 0.08
 
 q1 = zeros(model.nq)
@@ -55,10 +57,13 @@ qM2 = deepcopy(q1)
 qM3 = deepcopy(q1)
 qM4 = deepcopy(q1)
 qM1[6 + 3] += foot_height # front left
-qM2[15 + 3] += foot_height # back right
-qM3[9 + 3] += foot_height # front right
+qM1[1:3] = qM1[1:3] + [-0.02, -0.02, 0.0]
+qM2[9 + 3] += foot_height # front right
+qM2[1:3] = qM2[1:3] + [-0.02, 0.02, 0.0]
+qM3[15 + 3] += foot_height # back right
+qM3[1:3] = qM3[1:3] + [0.02, 0.02, 0.0]
 qM4[12 + 3] += foot_height # back left
-
+qM4[1:3] = qM4[1:3] + [0.02, -0.02, 0.0]
 # Terminal Q
 qT = copy(q1)
 
@@ -100,7 +105,7 @@ for t = 1:T
         function objT(x, u, w)
             J = 0.0
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
-            J += 0.5 * 1.0e-3 * dot(v, v)
+            J += 0.5 * 1.0e-1 * dot(v, v)
             J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
             return J
         end
@@ -109,12 +114,12 @@ for t = 1:T
         function obj1(x, u, w)
             J = 0.0
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
-            J += 0.5 * 1.0e-3 * dot(v, v)
+            J += 0.5 * 1.0e-1 * dot(v, v)
             J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
             J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0e2 * ones(20)) * u[model.nu + 4 .+ (1:20)]
 
-            J += 1000.0 * u[end] # slack
+            J += 10000.0 * u[end] # slack
             return J
         end
         push!(obj, DTO.Cost(obj1, nx, nu))
@@ -130,7 +135,7 @@ for t = 1:T
             J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
             J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0e2 * ones(20)) * u[model.nu + 4 .+ (1:20)] # B ψ
-            J += 1000.0 * u[end] # slack
+            J += 10000.0 * u[end] # slack
             return J
         end
         push!(obj, DTO.Cost(objt, nx + nθ + nx, nu))
@@ -151,20 +156,20 @@ xuT = [Inf * ones(nq); qT; Inf * ones(nθ); Inf * ones(nx)]
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
-# bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
-# bndt = DTO.Bound(nx + nθ + nx, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
-# bndT = DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT)
+# bnd1 = DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu)
+# bndt = DTO.Bound(nx + nθ + nx, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
+# bndT = DTO.Bound(nx + nθ + nx, 0, xl=xlT, xu=xuT)
 # bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 
 bnds = DTO.Bound{Float64}[]
-push!(bnds, DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu))
+push!(bnds, DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu))
 for t = 2:T-1
     push!(bnds, DTO.Bound(nx + nθ + nx, nu,
-        state_lower=[-Inf * ones(nq); -Inf * ones(nq); -Inf * ones(nθ); -Inf * ones(nx)],
-        state_upper=[Inf * ones(nq); Inf * ones(nq); Inf * ones(nθ); Inf * ones(nx)],
-        action_lower=ul, action_upper=uu))
+        xl=[-Inf * ones(nq); -Inf * ones(nq); -Inf * ones(nθ); -Inf * ones(nx)],
+        xu=[Inf * ones(nq); Inf * ones(nq); Inf * ones(nθ); Inf * ones(nx)],
+        ul=ul, uu=uu))
 end
-push!(bnds, DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT))
+push!(bnds, DTO.Bound(nx + nθ + nx, 0, xl=xlT, xu=xuT))
 
 
 cons = DTO.Constraint{Float64}[]
@@ -216,7 +221,7 @@ for t = 1:T
 end
 
 # ## problem
-tolerance = 1.0e-3
+tolerance = 1.0e-2
 p = DTO.solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         max_iter=4000,
@@ -241,9 +246,11 @@ x_sol, u_sol = DTO.get_trajectory(p)
 maximum([u[end] for u in u_sol[1:end-1]])
 
 # ## visualize
-vis = Visualizer()
-open(vis)
+# vis = Visualizer()
+# open(vis)
 visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
+
+
 
 q_opt = [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...]
 v_opt = [(x[model.nq .+ (1:model.nq)] - x[0 .+ (1:model.nq)]) ./ h for x in x_sol]
@@ -271,7 +278,7 @@ hm = h
 timesteps = range(0.0, stop=(h * (length(qm) - 2)), length=(length(qm) - 2))
 plot(hcat(qm...)', labels="")
 
-plot(timesteps, hcat(qm[2:end-1]...)', labels="")
+plot(hcat(qm...)', labels="")
 plot(timesteps, hcat(um...)', labels="")
 plot(timesteps, hcat(γm...)', labels="")
 plot(timesteps, hcat(bm...)', labels="")
@@ -279,14 +286,14 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "inplace_crawl_20Hz.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "inplace_crawl_20Hz.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "inplace_crawl_20Hz_v3.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "inplace_crawl_20Hz_v3.jld2") qm um γm bm ψm ηm μm hm
 
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["qm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["um"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["γm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["bm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["ψm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["ηm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["μm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["hm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz_v2.jld2"))["qm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz_v2.jld2"))["um"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz_v2.jld2"))["γm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz_v2.jld2"))["bm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz_v2.jld2"))["ψm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz_v2.jld2"))["ηm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz_v2.jld2"))["μm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz_v2.jld2"))["hm"]

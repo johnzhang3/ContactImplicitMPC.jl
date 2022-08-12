@@ -30,7 +30,7 @@ function build_robot!(vis::Visualizer, model::CentroidalQuadrupedWall;
 		convert(Float32, foot_radius)),
 		foot_mat)
 
-	box = setobject!(vis["wall"], GeometryBasics.HyperRectangle(Vec(0.25 + foot_radius, -1.0, 0.0),
+	box = setobject!(vis["wall"], GeometryBasics.HyperRectangle(Vec(0.35 + foot_radius, -1.0, 0.0),
 		Vec(0.25 + foot_radius, 2.0, 1.0)), MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, 1.0)))
 end
 

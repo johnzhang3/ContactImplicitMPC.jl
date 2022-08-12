@@ -132,20 +132,20 @@ xuT = [Inf * ones(nq); qT; Inf * ones(nθ); Inf * ones(nx)]
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
-# bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
-# bndt = DTO.Bound(nx + nθ + nx, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
-# bndT = DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT)
+# bnd1 = DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu)
+# bndt = DTO.Bound(nx + nθ + nx, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
+# bndT = DTO.Bound(nx + nθ + nx, 0, xl=xlT, xu=xuT)
 # bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 
 bnds = DTO.Bound{Float64}[]
-push!(bnds, DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu))
+push!(bnds, DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu))
 for t = 2:T-1
     push!(bnds, DTO.Bound(nx + nθ + nx, nu,
-        state_lower=[-Inf * ones(nq); -Inf * ones(nq); -Inf * ones(nθ); -Inf * ones(nx)],
-        state_upper=[Inf * ones(nq); Inf * ones(nq); Inf * ones(nθ); Inf * ones(nx)],
-        action_lower=ul, action_upper=uu))
+        xl=[-Inf * ones(nq); -Inf * ones(nq); -Inf * ones(nθ); -Inf * ones(nx)],
+        xu=[Inf * ones(nq); Inf * ones(nq); Inf * ones(nθ); Inf * ones(nx)],
+        ul=ul, uu=uu))
 end
-push!(bnds, DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT))
+push!(bnds, DTO.Bound(nx + nθ + nx, 0, xl=xlT, xu=xuT))
 
 
 cons = DTO.Constraint{Float64}[]
@@ -221,8 +221,8 @@ x_sol, u_sol = DTO.get_trajectory(p)
 maximum([u[end] for u in u_sol[1:end-1]])
 
 # ## visualize
-vis = Visualizer()
-render(vis)
+# vis = Visualizer()
+# render(vis)
 visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
 
 q_opt = [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...]
@@ -259,7 +259,10 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "inplace_trot_v10.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "inplace_trot_v10.jld2") qm um γm bm ψm ηm μm hm
-
-h
+<<<<<<< HEAD
+@save joinpath(@__DIR__, "inplace_trot_v6.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "inplace_trot_v6.jld2") qm um γm bm ψm ηm μm hm
+=======
+@save joinpath(@__DIR__, "inplace_trot_v9.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "inplace_trot_v9.jld2") qm um γm bm ψm ηm μm hm
+>>>>>>> 3cdea1b59ed918952dafce961cecdfd4118184f9

@@ -91,7 +91,7 @@ function ϕ_func(model::CentroidalQuadrupedWall, env::Environment, q)
     position_foot3 = q[12 .+ (1:3)]
 	position_foot4 = q[15 .+ (1:3)]
 
-    x_wall = 0.25
+    x_wall = 0.35
     
 	return [
         position_foot1[3]; position_foot2[3]; position_foot3[3]; position_foot4[3];

@@ -27,7 +27,7 @@ env = s.env
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
 	joinpath(@__DIR__, "reference/inplace_trot_v7.jld2"),
-    load_type = :split_traj_alt))
+    load_type = :split_traj_alt));
 
 H = ref_traj.H
 h = ref_traj.h

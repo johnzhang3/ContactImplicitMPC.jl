@@ -1,7 +1,6 @@
 # ## model
 include("trajopt_model_v2.jl")
 include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped/visuals.jl"))
-
 vis = Visualizer()
 open(vis)
 
@@ -56,7 +55,7 @@ x_ref = [q_ref; q_ref]
 function obj1(x, u, w)
 	J = 0.0
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
-	J += 0.5 * transpose(u) * Diagonal([ones(model.nu); zeros(nu - model.nu)]) * u
+	J += 0.5 * transpose(u) * Diagonal([ones(model.nu); 100.0 *ones(nu - model.nu)]) * u
     J += 1000.0 * u[end] # slack
     J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
 
@@ -71,7 +70,7 @@ function objt(x, u, w)
     J += 0.5 * 10.0 * dot(w[1:end-1], w[1:end-1])
 
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
-	J += 0.5 * transpose(u) * Diagonal([ones(model.nu); zeros(nu - model.nu)]) * u
+	J += 0.5 * transpose(u) * Diagonal([ones(model.nu); 100.0 *ones(nu - model.nu)]) * u
     J += 1000.0 * u[end] # slack
     J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
 
@@ -106,9 +105,9 @@ xuT = [q1; q1; Inf * ones(nθ); Inf * ones(nx)]
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
-bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
-bndt = DTO.Bound(nx + nθ + nx, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
-bndT = DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT)
+bnd1 = DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu)
+bndt = DTO.Bound(nx + nθ + nx, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
+bndT = DTO.Bound(nx + nθ + nx, 0, xl=xlT, xu=xuT)
 bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 
 function constraints_1(x, u, w)
@@ -201,7 +200,7 @@ hm = h
 timesteps = range(0.0, stop=(h * (length(qm) - 2)), length=(length(qm) - 2))
 plot(timesteps, hcat(qm[2:end-1]...)', labels="")
 plot(timesteps, hcat(um...)', labels="")
-plot(timesteps, hcat(γm...)', labels="")
+plot(timesteps, hcat(γm...)' ./ h, labels="")
 plot(timesteps, hcat(bm...)', labels="")
 plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")

@@ -30,10 +30,10 @@ dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(model, env, [h], y, 
 dyn = [d1, [dt for t = 2:T-1]...]
 
 # ## initial conditions
-mode = :left
+mode = :right
 body_height = 0.3
 foot_x = 0.17
-foot_y = 0.15
+foot_y = 0.1308
 foot_height = 0.08
 
 q1 = zeros(model.nq)
@@ -68,7 +68,6 @@ end
 qT = copy(q1)
 
 # visualize!(vis, model, [qM], Δt=h);
-
 q_ref = [linear_interpolation(q1, qM, Tm)..., linear_interpolation(qM, qT, Tm)...]
 x_ref = [[q_ref[t]; q_ref[t+1]] for t = 1:T]
 x1 = x_ref[1]
@@ -404,5 +403,5 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "inplace_trot.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "inplace_trot.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "inplace_trot_v5.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "inplace_trot_v5.jld2") qm um γm bm ψm ηm μm hm

@@ -1,13 +1,13 @@
 # ## model
 include("trajopt_model.jl")
 
-vis = Visualizer()
-open(vis)
+# vis = Visualizer()
+# open(vis)
 
 # ## horizon
-T = 101
-Tm = 51
-h = 0.01
+T = 21
+Tm = 11
+h = 0.05
 
 # ## centroidal_quadruped
 # s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -36,7 +36,7 @@ foot_x = 0.17
 foot_y = 0.15
 function nominal_configuration(model::CentroidalQuadruped)
     [
-        0.0; 0.0; body_height;
+        -0.025; -0.025; body_height;
         0.0; 0.0; 0.0;
         foot_x; foot_y; 0.0;
         foot_x;-foot_y; 0.0;
@@ -105,9 +105,9 @@ xuT = [q1; q1; Inf * ones(nθ); Inf * ones(nx); Inf * ones(model.nu)]
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
-bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
-bndt = DTO.Bound(nx + nθ + nx + model.nu, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
-bndT = DTO.Bound(nx + nθ + nx + model.nu, 0, state_lower=xlT, state_upper=xuT)
+bnd1 = DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu)
+bndt = DTO.Bound(nx + nθ + nx + model.nu, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
+bndT = DTO.Bound(nx + nθ + nx + model.nu, 0, xl=xlT, xu=xuT)
 bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 bnds = [bnd1, [bndt for t = 2:T-1]..., bndT]
 
@@ -127,6 +127,7 @@ function constraints_t(x, u, w)
      contact_constraints_equality(model, env, h, x, u, w);
      # inequality (32)
      contact_constraints_inequality_t(model, env, h, x, u, w);
+     (x[1:3] .- q1[1:3]); 
      (x[18 .+ (10:18)] - q1[10:18]);
     ]
 end
@@ -137,6 +138,7 @@ function constraints_M(x, u, w)
      contact_constraints_equality(model, env, h, x, u, w);
      # inequality (32)
      contact_constraints_inequality_t(model, env, h, x, u, w);
+     (x[1:3] .- q1[1:3]); 
      x[9] - 0.1;
      (x[18 .+ (10:18)] - q1[10:18]);
     ]
@@ -146,6 +148,7 @@ function constraints_T(x, u, w)
     [
      # inequality (8)
      contact_constraints_inequality_T(model, env, h, x, u, w);
+     (x[1:3] .- q1[1:3]); 
      (x[18 .+ (10:18)] - q1[10:18]);
     ]
 end
@@ -165,7 +168,7 @@ cont = DTO.Constraint(constraints_t, nx + nθ + nx + model.nu, nu, idx_ineq=coll
 conM = DTO.Constraint(constraints_M, nx + nθ + nx + model.nu, nu, idx_ineq=collect(16 .+ (1:32)))
 conTT = DTO.Constraint(constraints_TT, nx + nθ + nx + model.nu, nu, idx_ineq=collect(16 .+ (1:32)))
 conT = DTO.Constraint(constraints_T, nx + nθ + nx + model.nu, nu, idx_ineq=collect(0 .+ (1:8)))
-cons = [con1, [t == Tm ? conM : (t > T - 10 ? conTT : cont) for t = 2:T-1]..., conT];
+cons = [con1, [t == Tm ? conM : (t > T - 2 ? conTT : cont) for t = 2:T-1]..., conT];
 
 # ## problem
 p = DTO.solver(dyn, obj, cons, bnds,
@@ -174,7 +177,7 @@ p = DTO.solver(dyn, obj, cons, bnds,
         constr_viol_tol=1.0e-2,
         ))
 
-# ## initialize
+        # ## initialize
 x_interpolation = [x1, [[x1; zeros(nθ); zeros(nx); zeros(model.nu)] for t = 2:T]...]
 u_guess = [1.0e-4 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(p, x_interpolation)
@@ -227,7 +230,19 @@ plot(timesteps, hcat(bm...)', labels="")
 plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
-visualize!(vis, model, qm, Δt=h);
+# visualize!(vis, model, qm, Δt=h);
+
+
+# prolong the stand phase by 2 seconds longer
+# qm = [[q_opt[end] for i in 1:2 ÷ h]; q_opt]
+# vm = [[v_opt[end] for i in 1:2 ÷ h]; v_opt]
+# um = [[u_opt[end] for i in 1:2 ÷ h]; u_opt]
+# γm = [[γ_opt[end] for i in 1:2 ÷ h]; γ_opt]
+# bm = [[b_opt[end] for i in 1:2 ÷ h]; b_opt]
+# ψm = [[ψ_opt[end] for i in 1:2 ÷ h]; ψ_opt]
+# ηm = [[η_opt[end] for i in 1:2 ÷ h]; η_opt] 
+
+
 
 using JLD2
 # @save joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm

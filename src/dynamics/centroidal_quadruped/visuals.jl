@@ -6,6 +6,8 @@ function build_robot!(vis::Visualizer, model::CentroidalQuadruped;
 	color_opacity=1.0)
 
 	body_mat = MeshPhongMaterial(color=RGBA(0.0, 0.0, 0.0, color_opacity))
+	front_foot_mat = MeshPhongMaterial(color=RGBA(1.0, 165.0 / 255.0, 1, color_opacity))
+	back_foot_mat = MeshPhongMaterial(color=RGBA(1.0, 165.0 / 255.0, 0.0, color_opacity))
 	foot_mat = MeshPhongMaterial(color=RGBA(1.0, 165.0 / 255.0, 0.0, color_opacity))
 
 	default_background!(vis)
@@ -16,19 +18,19 @@ function build_robot!(vis::Visualizer, model::CentroidalQuadruped;
 
 	foot1 = setobject!(vis["foot1"], Sphere(Point3f0(0),
         convert(Float32, foot_radius)),
-        foot_mat)
+        front_foot_mat)
 
 	foot2 = setobject!(vis["foot2"], Sphere(Point3f0(0),
 		convert(Float32, foot_radius)),
-		foot_mat)
+		front_foot_mat)
 
 	foot3 = setobject!(vis["foot3"], Sphere(Point3f0(0),
 		convert(Float32, foot_radius)),
-		foot_mat)
+		back_foot_mat)
 
 	foot4 = setobject!(vis["foot4"], Sphere(Point3f0(0),
 		convert(Float32, foot_radius)),
-		foot_mat)
+		back_foot_mat)
 end
 
 function set_robot!(vis::Visualizer, model::CentroidalQuadruped, q::AbstractVector;
