@@ -40,4 +40,7 @@ Manifest.toml
 
 .DS_Store
 .vscode
+.github
+video/*
+
 
