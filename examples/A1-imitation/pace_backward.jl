@@ -8,7 +8,7 @@ include(joinpath(@__DIR__, "..", "..", "src/dynamics/centroidal_quadruped/visual
 ref_path = joinpath(@__DIR__, "..", "..", "examples/A1-imitation/centroidal_ref_traj/pace_backward.json")
 
 cent_pace = JSON.parsefile(ref_path);
-q_ref_any = cent_pace["Frames"];
+q_ref_any = cent_pace["Frames"]
 
 # h = cent_pace["FrameDuration"];
 h = 0.05
@@ -24,9 +24,9 @@ q_ref = [q_ref[i,:] for i in 1:size(q_ref,1)];
 
 # q_ref = [[Float64.(q_ref_any[t]); Float64.(q_ref_any[t+1])] for t = 1:T]
 
-vis = Visualizer()
-render(vis)
-visualize!(vis, model, q_ref, Δt=h);
+# vis = Visualizer()
+# render(vis)
+# visualize!(vis, model, q_ref, Δt=h);
 # plot(hcat(q_ref...)', labels="")
 # initial and final q
 q1 = q_ref[1];
@@ -280,6 +280,9 @@ bm = copy(b_opt)
 μm = model.μ_world
 
 hm = h
+
+@save joinpath(@__DIR__, "results/optimal_trajectories/", "pace_backward.jld2") qm um γm bm ψm ηm μm hm
+
 timesteps = range(0.0, stop=(h * (length(qm) - 2)), length=(length(qm) - 2))
 plot(hcat(qm...)', labels="")
 

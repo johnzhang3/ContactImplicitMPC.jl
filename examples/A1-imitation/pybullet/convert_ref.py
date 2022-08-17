@@ -135,7 +135,7 @@ def plot_centroidal_traj():
         cent_traj = cent_traj_dict["Frames"]
         cent_traj = np.array(cent_traj)
         fig, axs = plt.subplots()
-        # foot one
+        # foot height
         axs.plot(cent_traj[:, 8], label = "foot 1")
         axs.plot(cent_traj[:, 11], label = "foot 2")
         axs.plot(cent_traj[:, 14], label = "foot 3")

@@ -213,36 +213,6 @@ vis = Visualizer();
 render(vis);
 visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
 
-# second solve 
-DTO.initialize_states!(p, x_sol);
-DTO.initialize_controls!(p, u_sol);
-
-# ## solve
-@time DTO.solve!(p);
-
-# # ## solution
-x_sol, u_sol = DTO.get_trajectory(p);
-# @show x_sol[1]
-# @show x_sol[T]
-# maximum([u[end] for u in u_sol[1:end-1]])
-
-
-# second solve 
-DTO.initialize_states!(p, x_sol);
-DTO.initialize_controls!(p, u_sol);
-
-# ## solve
-@time DTO.solve!(p);
-# # ## solution
-x_sol, u_sol = DTO.get_trajectory(p);
-
-# # ## visualize
-vis = Visualizer()
-render(vis)
-visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
-
-
-
 
 
 q_opt = [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...]
@@ -268,6 +238,8 @@ bm = copy(b_opt)
 μm = model.μ_world
 
 hm = h
+@save joinpath(@__DIR__, "results/optimal_trajectories/", "sidesteps.jld2") qm um γm bm ψm ηm μm hm
+
 timesteps = range(0.0, stop=(h * (length(qm) - 2)), length=(length(qm) - 2))
 plot(hcat(qm...)', labels="")
 

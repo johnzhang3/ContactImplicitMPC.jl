@@ -36,6 +36,7 @@ qT = q_ref[T+1];
 
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
+model.μ_world = 1
 env = s.env;
 
 Tm = 4;
@@ -179,7 +180,7 @@ for t = 1:T
 end
 
 # ## problem
-tolerance = 1.0e-3;
+tolerance = 1.0e-2;
 p = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         max_iter=10000,
@@ -214,7 +215,7 @@ x_sol
 # visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
 
 # second solve 
-DTO.initialize_states!(p, x_sol);
+DTO.initialize_states!(p, x_interpolation);
 DTO.initialize_controls!(p, u_sol);
 
 # ## solve
@@ -268,6 +269,8 @@ bm = copy(b_opt)
 μm = model.μ_world
 
 hm = h
+@save joinpath(@__DIR__, "results/optimal_trajectories/", "hopturn.jld2") qm um γm bm ψm ηm μm hm
+
 timesteps = range(0.0, stop=(h * (length(qm) - 2)), length=(length(qm) - 2))
 plot(hcat(qm...)', labels="")
 

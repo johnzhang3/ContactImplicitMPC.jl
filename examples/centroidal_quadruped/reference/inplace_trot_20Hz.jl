@@ -272,7 +272,7 @@ x_sol, u_sol = DTO.get_trajectory(p)
 @show x_sol[1]
 @show x_sol[T]
 maximum([u[end] for u in u_sol[1:end-1]])
-
+sum([u[end] for u in u_sol[1:end-1]])
 # ## visualize
 vis = Visualizer()
 render(vis)

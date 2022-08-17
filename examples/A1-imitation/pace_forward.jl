@@ -4,8 +4,11 @@ using JSON
 
 include(joinpath(@__DIR__, "..", "..", "examples/centroidal_quadruped/reference/trajopt_model_v2.jl"))
 include(joinpath(@__DIR__, "..", "..", "src/dynamics/centroidal_quadruped/visuals.jl"))
+include(joinpath("..", "..", "examples/A1-imitation/utils/utilities.jl"))
+include(joinpath("..", "..", "examples/A1-imitation/utils/plot_utils.jl"))
 
-ref_path = joinpath(@__DIR__, "..", "..", "examples/A1-imitation/centroidal_ref_traj/pace.json")
+
+ref_path = joinpath(@__DIR__, "..", "..", "examples/A1-imitation/centroidal_ref_traj/pace_forward.json")
 
 cent_pace = JSON.parsefile(ref_path);
 q_ref_any = cent_pace["Frames"];
@@ -24,13 +27,13 @@ q_ref = [q_ref[i,:] for i in 1:size(q_ref,1)];
 
 # q_ref = [[Float64.(q_ref_any[t]); Float64.(q_ref_any[t+1])] for t = 1:T]
 
-vis = Visualizer()
-render(vis)
-visualize!(vis, model, q_ref, Δt=h);
-plot(hcat(q_ref...)', labels="")
+# vis = Visualizer()
+# render(vis)
+# visualize!(vis, model, q_ref, Δt=h);
+# plot(hcat(q_ref...)', labels="")
 # initial and final q
 q1 = q_ref[1];
-qT = q_ref[39];
+qT = q_ref[39]
 
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
@@ -75,7 +78,7 @@ for t = 1:T
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu];
             J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
 
-            J += 1000.0 * u[end]; # slack
+            J += 10000.0 * u[end]; # slack
             return J / T
         end
         push!(obj, DTO.Cost(obj1, nx, nu));
@@ -91,7 +94,7 @@ for t = 1:T
             J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu];
             J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
-            J += 1000.0 * u[end]; # slack
+            J += 10000.0 * u[end]; # slack
             return J / T
         end
         push!(obj, DTO.Cost(objt, nx + nθ + nx, nu));
@@ -181,7 +184,7 @@ tolerance = 1.0e-3;
 p = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         max_iter=4000,
-        max_cpu_time = 300.0,
+        max_cpu_time = 3000.0,
         tol=tolerance,
         constr_viol_tol=tolerance,
         
@@ -189,21 +192,54 @@ p = DTO.Solver(dyn, obj, cons, bnds,
 
 
 using Random
-Random.seed!(1)  ;      
+Random.seed!(10)  ;      
 # ## initialize
 x_interpolation = [x_ref[1], [[x_ref[t]; zeros(nθ); zeros(nx)] for t = 2:T]...];
 u_guess = [1.0e-1 * rand(nu) for t = 1:T-1]; # may need to run more than once to get good trajectory
 DTO.initialize_states!(p, x_interpolation);
 DTO.initialize_controls!(p, u_guess);
 
-# ## solve
+## solve
 @time DTO.solve!(p);
 
 # ## solution
-x_sol, u_sol = DTO.get_trajectory(p)
-@show x_sol[1]
-# @show x_sol[T]
-x_sol
+x_sol, u_sol = DTO.get_trajectory(p);
+maximum([u[end] for u in u_sol[1:end-1]])
+sum([u[end] for u in u_sol[1:end-1]])
+save_to_jld2(model, x_sol, u_sol, "pace_forward", tolerance)
+u_sol[]
+plt_opt_foot_height("pace_forward", tolerance)
+
+
+# tols = [1e-3,1e-4, 1e-5, 1e-6]
+# u_sol = nothing
+
+# for tol in tols
+#     println("currently solving tolerance $(tol)")
+#     p = DTO.Solver(dyn, obj, cons, bnds,
+#     options=DTO.Options(
+#         max_iter=1000000,
+#         max_cpu_time = 30000.0,
+#         tol=tol,
+#         constr_viol_tol=tolerance,
+#         ));
+#     if tol == 1e-3
+#         println("first solve!")
+#         DTO.initialize_states!(p, x_interpolation);
+#         DTO.initialize_controls!(p, u_guess);
+
+#     else
+#         DTO.initialize_states!(p, x_sol);
+#         DTO.initialize_controls!(p, u_sol);
+#     end
+    
+#     @time DTO.solve!(p);
+#     # ## solution
+#     global x_sol, u_sol = DTO.get_trajectory(p)
+#     save_to_jld2(model, x_sol, u_sol, "pace_forward", tol)
+#     plt_opt_foot_height("pace_forward", tol)
+# end
+
 # maximum([u[end] for u in u_sol[1:end-1]])
 
 # ## visualize
@@ -211,85 +247,4 @@ vis = Visualizer();
 render(vis);
 visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
 
-# second solve 
-# DTO.initialize_states!(p, x_interpolation);
-# DTO.initialize_controls!(p, u_sol);
 
-# # ## solve
-# @time DTO.solve!(p);
-
-# # ## solution
-# x_sol, u_sol = DTO.get_trajectory(p);
-# @show x_sol[1]
-# @show x_sol[T]
-# maximum([u[end] for u in u_sol[1:end-1]])
-
-
-# # ## visualize
-# vis = Visualizer()
-# render(vis)
-# visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
-
-
-# for num_solves = 1:2
-#     # println(num_solves)
-#     # initialize control randomly the first time
-#     if num_solves == 1
-#         u_guess = [1.0e-1 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
-#         DTO.initialize_controls!(p, u_guess)
-#     else
-#         DTO.initialize_controls!(p, u_sol)
-#     end
-#     x_interpolation = [x_ref[1], [[x_ref[t]; zeros(nθ); zeros(nx)] for t = 2:T]...]
-#     DTO.initialize_states!(p, x_interpolation)
-
-#     # ## solve
-#     @time DTO.solve!(p);
-
-#     # ## solution
-#     global x_sol, u_sol = DTO.get_trajectory(p)
-#     # print(u_sol)
-#     # @show x_sol[1]
-#     # @show x_sol[T]
-#     # maximum([u[end] for u in u_sol[1:end-1]])
-
-# end
-
-
-
-q_opt = [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...]
-v_opt = [(x[model.nq .+ (1:model.nq)] - x[0 .+ (1:model.nq)]) ./ h for x in x_sol]
-u_opt = [u[1:model.nu] for u in u_sol]
-λ_opt = [u[model.nu .+ (1:4)] for u in u_sol]
-b_opt = [u[model.nu + 4 .+ (1:16)] for u in u_sol]
-
-q_opt = [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...]
-v_opt = [(x[model.nq .+ (1:model.nq)] - x[0 .+ (1:model.nq)]) ./ h for x in x_sol]
-u_opt = [u[1:model.nu] for u in u_sol]
-γ_opt = [u[model.nu .+ (1:4)] for u in u_sol]
-b_opt = [u[model.nu + 4 .+ (1:16)] for u in u_sol]
-ψ_opt = [u[model.nu + 4 + 16 .+ (1:4)] for u in u_sol]
-η_opt = [u[model.nu + 4 + 16 + 4 .+ (1:16)] for u in u_sol]
-
-qm = copy(q_opt)
-um = copy(u_opt)
-γm = copy(γ_opt)
-bm = copy(b_opt)
-ψm = copy(ψ_opt)
-ηm = copy(η_opt)
-μm = model.μ_world
-
-hm = h
-timesteps = range(0.0, stop=(h * (length(qm) - 2)), length=(length(qm) - 2))
-plot(hcat(qm...)', labels="")
-
-plot(timesteps, hcat(qm[2:end-1]...)', labels="")
-plot(timesteps, hcat(um...)', labels="")
-plot(timesteps, hcat(γm...)', labels="")
-plot(timesteps, hcat(bm...)', labels="")
-plot(timesteps, hcat(ψm...)', labels="")
-plot(timesteps, hcat(ηm...)', labels="")
-
-# using JLD2
-# @save joinpath(@__DIR__, "data", "pace_imitation.jld2") qm um γm bm ψm ηm μm hm
-# @load joinpath(@__DIR__, "data", "pace_imitation.jld2") qm um γm bm ψm ηm μm hm
