@@ -25,8 +25,8 @@ function plt_ref_foot_height(gait)
 
 end
 
-function plt_opt_foot_height(gait, tol)
-    opt_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/results/optimal_trajectories/$(gait)", "$(gait)_tol$(tol).jld2")
+function plt_opt_foot_height(gait, tol, path)
+    opt_path = joinpath(path, "$(gait)_tol$(tol).jld2")
     @load opt_path qm um γm bm ψm ηm μm hm
     q_opt = zeros(size(qm)[1],18)
     for i = 1:size(qm)[1]
@@ -38,8 +38,7 @@ function plt_opt_foot_height(gait, tol)
     plot!(q_opt[:, 15], label = "foot 3", lw=4)
     plot!(q_opt[:, 18], label = "foot 4", lw=4)
 
-    fig_path = joinpath(@__DIR__, "..", "..", "..", "examples", "A1-imitation", "results", "figures")
-    fig_file_path = joinpath(fig_path, "opt_$(gait)_tol$(tol)_foot_height.png")
+    fig_file_path = joinpath(path, "opt_$(gait)_tol$(tol)_foot_height.png")
     savefig(fig_file_path)
 end
 

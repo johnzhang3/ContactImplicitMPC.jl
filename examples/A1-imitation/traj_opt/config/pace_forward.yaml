@@ -1,0 +1,9 @@
+## cost function weights
+weight_x: 100 # state
+weight_s: 10000 # slack
+weight_u: 0.001 #control
+weight_v: 0.001 #velocity?
+weight_w: 0
+
+
+
