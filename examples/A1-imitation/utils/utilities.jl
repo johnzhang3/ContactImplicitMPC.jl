@@ -26,18 +26,18 @@ end
 function convert_q_from_json(path)
     # input:  path of json fine
     # output: q as vector of vecotor Float64
-    
+    println(path)
     q_any = JSON.parsefile(path)["Frames"];
-    T = size(q_ref_any)[1] - 1
+    T = size(q_any)[1] - 1
     h = JSON.parsefile(path)["FrameDuration"]
-    q_ref = zeros(size(q_ref_any)[1],18);
+    q_ref = zeros(size(q_any)[1],18);
 
-    for i = 1:size(q_ref_any)[1]
-        q_ref[i,:] = Float64.(q_ref_any[i]);
+    for i = 1:size(q_any)[1]
+        q_ref[i,:] = Float64.(q_any[i]);
     end
 
     q_ref = [q_ref[i,:] for i in 1:size(q_ref,1)];
-
+    println(T)
     return q_ref, h, T
 end
 
