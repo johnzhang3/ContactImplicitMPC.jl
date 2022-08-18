@@ -16,9 +16,21 @@ config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_o
 q_ref, h, T = convert_q_from_json(ref_path);
 weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64})
 # h=0.05;
+q1 = deepcopy(q_ref[1])
+q1[9] = 0.0;
+q1[12] = 0.0;
+q1[15] = 0.0;
+q1[18] = 0.0;
+qT = deepcopy(q_ref[end])
+qT[9] = 0.0;
+qT[12] = 0.0;
+qT[15] = 0.0;
+qT[18] = 0.0;
 
-q1 = q_ref[1];
-qT = q_ref[T+1];
+pushfirst!(q_ref, q1)
+push!(q_ref, qT)
+# q1 = q_ref[1]
+# qT = q_ref[T+1]
 
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
