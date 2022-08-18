@@ -14,7 +14,7 @@ run_path = mk_new_dir(result_path)
 ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroidal_ref_traj/hopturn.json")
 config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/hopturn.yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
-# data = YAML.load_file(config_path; dicttype= Dict{String, Float64})
+weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64})
 # h=0.05;
 
 q1 = q_ref[1];
@@ -45,8 +45,8 @@ for t = 1:T
         function objT(x, u, w)
             J = 0.0;
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h;
-            J += 0.5 * 1.0e-3 * dot(v, v);
-            J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
+            J += 0.5 * weights_dict["weight_v_T"] * dot(v, v);
+            J += weights_dict["weight_x_T"] * transpose(x[1:nx] - x_ref[t]) * Diagonal(ones(nx)) * (x[1:nx] - x_ref[t]);
             return J / T
         end
         push!(obj, DTO.Cost(objT, nx + nθ + nx, 0));
@@ -54,12 +54,12 @@ for t = 1:T
         function obj1(x, u, w)
             J = 0.0;
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h;
-            J += 0.5 * 1.0e-3 * dot(v, v);
-            J += 1 * transpose(x[1:nx] - x_ref[t]) * Diagonal(100.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
-            J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu];
+            J += 0.5 * weights_dict["weight_v_i"] * dot(v, v);
+            J += weights_dict["weight_x_i"] * transpose(x[1:nx] - x_ref[t]) * Diagonal(ones(nx)) * (x[1:nx] - x_ref[t]);
+            J += 0.5 * weights_dict["weight_u_i"] * transpose(u[1:model.nu]) * Diagonal(ones(model.nu)) * u[1:model.nu];
             # J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
 
-            J += 10000.0 * u[end]; # slack
+            J += weights_dict["weight_s_i"] * u[end]; # slack
             return J / T
         end
         push!(obj, DTO.Cost(obj1, nx, nu));
@@ -67,15 +67,15 @@ for t = 1:T
         function objt(x, u, w)
             J = 0.0;
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h;
-            J += 0.5 * 1.0e-1 * dot(v, v);
+            J += 0.5 * weights_dict["weight_v_t"] * dot(v, v);
             u_previous = x[nx .+ (1:53)];
             u_control = u;
             w = (u_control - u_previous) ./ h;
-            J += 0.5 * 1.0e-3 * dot(w, w);
-            J += 1 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
-            J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu];
+            J += 0.5 * weights_dict["weight_w_t"] * dot(w, w);
+            J += weights_dict["weight_x_t"] * transpose(x[1:nx] - x_ref[t]) * Diagonal(ones(nx)) * (x[1:nx] - x_ref[t]);
+            J += 0.5 * weights_dict["weight_u_t"] * transpose(u[1:model.nu]) * Diagonal(ones(model.nu)) * u[1:model.nu];
             # J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
-            J += 10000.0 * u[end]; # slack
+            J += weights_dict["weight_s_t"] * u[end]; # slack
             return J / T
         end
         push!(obj, DTO.Cost(objt, nx + nθ + nx, nu));

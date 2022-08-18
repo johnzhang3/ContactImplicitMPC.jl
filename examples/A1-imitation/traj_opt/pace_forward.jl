@@ -14,7 +14,8 @@ run_path = mk_new_dir(result_path)
 ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroidal_ref_traj/pace_forward.json")
 config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/pace_forward.yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
-# data = YAML.load_file(config_path; dicttype= Dict{String, Float64})
+weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64})
+
 h=0.05;
 
 q1 = q_ref[1];
@@ -44,8 +45,8 @@ for t = 1:T
         function objT(x, u, w)
             J = 0.0;
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h;
-            J += 0.5 * 1.0e-3 * dot(v, v);
-            J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
+            J += 0.5 * weights_dict["weight_v_T"] * dot(v, v);
+            J += weights_dict["weight_x_T"] * transpose(x[1:nx] - x_ref[t]) * Diagonal(ones(nx)) * (x[1:nx] - x_ref[t]);
             return J / T
         end
         push!(obj, DTO.Cost(objT, nx + nθ + nx, 0));
@@ -53,12 +54,12 @@ for t = 1:T
         function obj1(x, u, w)
             J = 0.0;
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h;
-            J += 0.5 * 1.0e-3 * dot(v, v);
-            J += 1 * transpose(x[1:nx] - x_ref[t]) * Diagonal(100.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
-            J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu];
+            J += 0.5 * weights_dict["weight_v_i"] * dot(v, v);
+            J += weights_dict["weight_x_i"] * transpose(x[1:nx] - x_ref[t]) * Diagonal(ones(nx)) * (x[1:nx] - x_ref[t]);
+            J += 0.5 * weights_dict["weight_u_i"] * transpose(u[1:model.nu]) * Diagonal(ones(model.nu)) * u[1:model.nu];
             # J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
 
-            J += 10000.0 * u[end]; # slack
+            J += weights_dict["weight_s_i"] * u[end]; # slack
             return J / T
         end
         push!(obj, DTO.Cost(obj1, nx, nu));
@@ -66,15 +67,15 @@ for t = 1:T
         function objt(x, u, w)
             J = 0.0;
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h;
-            J += 0.5 * 1.0e-1 * dot(v, v);
+            J += 0.5 * weights_dict["weight_v_t"] * dot(v, v);
             u_previous = x[nx .+ (1:53)];
             u_control = u;
             w = (u_control - u_previous) ./ h;
-            J += 0.5 * 1.0e-3 * dot(w, w);
-            J += 1 * transpose(x[1:nx] - x_ref[t]) * Diagonal(100.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
-            J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu];
+            J += 0.5 * weights_dict["weight_w_t"] * dot(w, w);
+            J += weights_dict["weight_x_t"] * transpose(x[1:nx] - x_ref[t]) * Diagonal(ones(nx)) * (x[1:nx] - x_ref[t]);
+            J += 0.5 * weights_dict["weight_u_t"] * transpose(u[1:model.nu]) * Diagonal(ones(model.nu)) * u[1:model.nu];
             # J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
-            J += 10000.0 * u[end]; # slack
+            J += weights_dict["weight_s_t"] * u[end]; # slack
             return J / T
         end
         push!(obj, DTO.Cost(objt, nx + nθ + nx, nu));
@@ -94,11 +95,6 @@ xuT = [Inf * ones(nq); qT; Inf * ones(nθ); Inf * ones(nx)];
 
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)];
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)];
-
-# bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
-# bndt = DTO.Bound(nx + nθ + nx, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
-# bndT = DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT)
-# bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 
 bnds = DTO.Bound{Float64}[];
 push!(bnds, DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu));
@@ -187,7 +183,7 @@ x_sol, u_sol = DTO.get_trajectory(p);
 
 save_to_jld2(model, x_sol, u_sol, "pace_forward", tolerance,  run_path)
 plt_opt_foot_height("pace_forward", tolerance, run_path)
-
+YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict)
 # tols = [1e-4, 1e-5, 1e-6];
 # for tol in tols
 #     p = DTO.Solver(dyn, obj, cons, bnds,
