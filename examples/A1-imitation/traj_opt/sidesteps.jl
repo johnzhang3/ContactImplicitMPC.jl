@@ -198,6 +198,7 @@ x_sol, u_sol = DTO.get_trajectory(p);
 
 save_to_jld2(model, x_sol, u_sol, "sidesteps", tolerance,  run_path)
 plt_opt_foot_height("sidesteps", tolerance, run_path)
+YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict)
 
 # ## visualize
 vis = Visualizer();
