@@ -8,20 +8,21 @@ include(joinpath("..", "..", "..", "examples/A1-imitation/utils/utilities.jl"))
 include(joinpath("..", "..", "..", "examples/A1-imitation/utils/plot_utils.jl"))
 
 # make new directory to store results
-result_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/results", "pace_backward")
+result_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/results", "hopturn")
 run_path = mk_new_dir(result_path)
 
-ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroidal_ref_traj/pace_backward.json")
-config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/pace_backward.yaml")
+ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroidal_ref_traj/hopturn.json")
+config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/hopturn.yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
 # data = YAML.load_file(config_path; dicttype= Dict{String, Float64})
-h=0.05;
+# h=0.05;
 
 q1 = q_ref[1];
 qT = q_ref[T+1];
 
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
+model.μ_world = 1;
 env = s.env;
 
 nx = 2 * model.nq;
@@ -71,7 +72,7 @@ for t = 1:T
             u_control = u;
             w = (u_control - u_previous) ./ h;
             J += 0.5 * 1.0e-3 * dot(w, w);
-            J += 1 * transpose(x[1:nx] - x_ref[t]) * Diagonal(100.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
+            J += 1 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu];
             # J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
             J += 10000.0 * u[end]; # slack
@@ -185,8 +186,8 @@ x_sol, u_sol = DTO.get_trajectory(p);
 @show max_slack = maximum([u[end] for u in u_sol[1:end-1]])
 @show tot_slack = sum([u[end] for u in u_sol[1:end-1]])
 
-save_to_jld2(model, x_sol, u_sol, "pace_backward", tolerance,  run_path)
-plt_opt_foot_height("pace_backward", tolerance, run_path)
+save_to_jld2(model, x_sol, u_sol, "hopturn", tolerance,  run_path)
+plt_opt_foot_height("hopturn", tolerance, run_path)
 
 # ## visualize
 vis = Visualizer();

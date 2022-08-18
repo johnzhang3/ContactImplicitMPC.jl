@@ -13,12 +13,12 @@ run_path = mk_new_dir(result_path)
 
 ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroidal_ref_traj/pace_forward.json")
 config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/pace_forward.yaml")
-q_ref, h, T = convert_q_from_json(ref_path)
+q_ref, h, T = convert_q_from_json(ref_path);
 # data = YAML.load_file(config_path; dicttype= Dict{String, Float64})
-h=0.05
+h=0.05;
 
 q1 = q_ref[1];
-qT = q_ref[T+1]
+qT = q_ref[T+1];
 
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
@@ -54,7 +54,7 @@ for t = 1:T
             J = 0.0;
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h;
             J += 0.5 * 1.0e-3 * dot(v, v);
-            J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
+            J += 1 * transpose(x[1:nx] - x_ref[t]) * Diagonal(100.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu];
             # J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
 
@@ -71,7 +71,7 @@ for t = 1:T
             u_control = u;
             w = (u_control - u_previous) ./ h;
             J += 0.5 * 1.0e-3 * dot(w, w);
-            J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
+            J += 1 * transpose(x[1:nx] - x_ref[t]) * Diagonal(100.0 * ones(nx)) * (x[1:nx] - x_ref[t]);
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu];
             # J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
             J += 10000.0 * u[end]; # slack
@@ -173,7 +173,7 @@ Random.seed!(10)  ;
 # ## initialize
 x_interpolation = [x_ref[1], [[x_ref[t]; zeros(nθ); zeros(nx)] for t = 2:T]...];
 u_guess = [1.0e-1 * rand(nu) for t = 1:T-1]; # may need to run more than once to get good trajectory
-u_guess[1]
+
 DTO.initialize_states!(p, x_interpolation);
 DTO.initialize_controls!(p, u_guess);
 
@@ -182,33 +182,33 @@ DTO.initialize_controls!(p, u_guess);
 
 # ## solution
 x_sol, u_sol = DTO.get_trajectory(p);
-max_slack = maximum([u[end] for u in u_sol[1:end-1]])
-tot_slack = sum([u[end] for u in u_sol[1:end-1]])
+@show max_slack = maximum([u[end] for u in u_sol[1:end-1]])
+@show tot_slack = sum([u[end] for u in u_sol[1:end-1]])
 
 save_to_jld2(model, x_sol, u_sol, "pace_forward", tolerance,  run_path)
 plt_opt_foot_height("pace_forward", tolerance, run_path)
 
-tols = [1e-4, 1e-5, 1e-6];
-for tol in tols
-    p = DTO.Solver(dyn, obj, cons, bnds,
-        options=DTO.Options(
-            max_iter=10000,
-            max_cpu_time = 30000.0,
-            tol=tol,
-            constr_viol_tol=tol));
-    DTO.initialize_states!(p, x_sol);
-    DTO.initialize_controls!(p, u_sol);
-    ## solve
-    @time DTO.solve!(p);
-    # ## solution
-    x_sol, u_sol = DTO.get_trajectory(p);
-    max_slack = maximum([u[end] for u in u_sol[1:end-1]])
-    tot_slack = sum([u[end] for u in u_sol[1:end-1]])
+# tols = [1e-4, 1e-5, 1e-6];
+# for tol in tols
+#     p = DTO.Solver(dyn, obj, cons, bnds,
+#         options=DTO.Options(
+#             max_iter=10000,
+#             max_cpu_time = 30000.0,
+#             tol=tol,
+#             constr_viol_tol=tol));
+#     DTO.initialize_states!(p, x_sol);
+#     DTO.initialize_controls!(p, u_sol);
+#     ## solve
+#     @time DTO.solve!(p);
+#     # ## solution
+#     x_sol, u_sol = DTO.get_trajectory(p);
+#     max_slack = maximum([u[end] for u in u_sol[1:end-1]])
+#     tot_slack = sum([u[end] for u in u_sol[1:end-1]])
 
-    save_to_jld2(model, x_sol, u_sol, "pace_forward", tol,  run_path)
-    plt_opt_foot_height("pace_forward", tol, run_path)
+#     save_to_jld2(model, x_sol, u_sol, "pace_forward", tol,  run_path)
+#     plt_opt_foot_height("pace_forward", tol, run_path)
 
-end
+# end
 
 # ## visualize
 vis = Visualizer();
