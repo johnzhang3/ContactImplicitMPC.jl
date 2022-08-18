@@ -8,7 +8,7 @@ include(joinpath("..", "..", "..", "examples/A1-imitation/utils/utilities.jl"))
 include(joinpath("..", "..", "..", "examples/A1-imitation/utils/plot_utils.jl"))
 
 # "pace_forward", "pace_backward", "sidesteps", "hopturn"
-gait = "sidesteps"
+gait = "pace_backward"
 
 # make new directory to store results
 result_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/results", gait)
