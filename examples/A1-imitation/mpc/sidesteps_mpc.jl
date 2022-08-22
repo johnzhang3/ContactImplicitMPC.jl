@@ -10,7 +10,7 @@ s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
 env = s.env;
 
-ref_path = joinpath(@__DIR__, "..", "results", "pace_forward", "run21", "pace_forward_tol0.001.jld2");
+ref_path = joinpath(@__DIR__, "..", "results", "sidesteps", "run12", "sidesteps_tol0.001.jld2");
 ref_traj = deepcopy(get_trajectory(s.model, s.env, ref_path, load_type = :split_traj_alt));
 
 # update_friction_coefficient!(ref_traj, model, env);
@@ -21,7 +21,7 @@ h = ref_traj.h;
 N_sample = 5;
 H_mpc = 5;
 h_sim = h / N_sample;
-H_sim = 500;
+H_sim = 1000;
 κ_mpc = 1.0e-3;
 
 v0 = -0.0
@@ -82,4 +82,4 @@ process!(sim.stats, N_sample); # Time budget
 
 plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)",
 	ylims=[-0.001, 0.1],
-	label="", linetype=:steppost);
+	label="", linetype=:steppost)
