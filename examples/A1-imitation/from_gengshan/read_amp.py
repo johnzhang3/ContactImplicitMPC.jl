@@ -34,7 +34,7 @@ def get_video_traj(path, outdir):
         out_dict['Frames'] = Frames
     save_path = os.path.join(outdir, "video_traj.json")
     with open(save_path, 'w') as f:
-        json.dump(out_dict, f)
+        json.dump(out_dict, f, indent=4)
 
     # np.savetxt('%s/out-root_traj.txt'%outdir, root_traj)
     # np.savetxt('%s/out-feet_traj.txt'%outdir, feet_traj)
