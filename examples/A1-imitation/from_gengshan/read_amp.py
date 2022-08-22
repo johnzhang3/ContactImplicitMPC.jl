@@ -3,6 +3,7 @@ import json
 import sys
 import os 
 from pybullet_utils import transformations
+import matplotlib.pyplot as plt
 
 def parse_amp(amp_info):
     msm = {}
@@ -36,8 +37,22 @@ def get_video_traj(path, outdir):
     with open(save_path, 'w') as f:
         json.dump(out_dict, f, indent=4)
 
-    # np.savetxt('%s/out-root_traj.txt'%outdir, root_traj)
-    # np.savetxt('%s/out-feet_traj.txt'%outdir, feet_traj)
+def plot_traj(outdir):
+
+    cent_traj_path = os.path.join(outdir, "video_traj.json")
+    with open(cent_traj_path, 'r') as f:
+        cent_traj_dict = json.load(f)
+    cent_traj = cent_traj_dict["Frames"]
+    cent_traj = np.array(cent_traj)
+    fig, axs = plt.subplots()
+    # foot height
+    axs.plot(cent_traj[:, 8], label = "foot 1")
+    axs.plot(cent_traj[:, 11], label = "foot 2")
+    axs.plot(cent_traj[:, 14], label = "foot 3")
+    axs.plot(cent_traj[:, 17], label = "foot 4")
+    axs.set_title('video foot height')
+    axs.legend()
+    plt.show()
 
 if __name__ == "__main__":
 
@@ -45,5 +60,5 @@ if __name__ == "__main__":
     outdir = os.path.join(os.getcwd(), "examples/A1-imitation/from_gengshan")
 
     get_video_traj(path, outdir)
-
+    plot_traj(outdir)
 
