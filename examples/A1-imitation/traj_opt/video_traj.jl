@@ -15,7 +15,7 @@ ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/from_geng
 config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/video_traj.yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
 weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64})
-h=0.05;
+# h=0.05;
 q1 = deepcopy(q_ref[1])
 # q1[9] = 0.0;
 q1[12] = 0.0;
