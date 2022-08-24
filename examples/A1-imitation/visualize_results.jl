@@ -31,3 +31,6 @@ pace_opt_path = joinpath(@__DIR__, "results", "hopturn", "run8", "hopturn_tol0.0
 vis = Visualizer();
 render(vis);
 visualize!(vis, model, qm, Δt=hm);
+
+# video trajectory
+# vidoe_traj_path = 

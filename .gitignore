@@ -43,5 +43,7 @@ Manifest.toml
 .github
 video/*
 
+*.tar 
+*.mp4
 
 *.jpg

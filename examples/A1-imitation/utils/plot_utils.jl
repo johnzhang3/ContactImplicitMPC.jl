@@ -42,6 +42,17 @@ function plt_opt_foot_height(gait, tol, path)
     savefig(fig_file_path)
 end
 
+function plt_ref_foot_height(q, dir, title)
+    q_new = zeros(size(q)[1], 18)
+    for i = 1:size(q)[1]
+        q_new[i, :] = Float64.(q[i])
+    end
+    plot(q_new[:, 9], label = "foot 1", title = title, lw=4)
+    plot!(q_new[:, 12], label = "foot 2", lw=4)
+    plot!(q_new[:, 15], label = "foot 3", lw=4)
+    plot!(q_new[:, 18], label = "foot 4", lw=4)
+    savefig(joinpath(dir, "$(title).png"))
+end
 # gaits = ["pace_forward", "pace_backward", "hopturn", "sidesteps"];
 
 # for gait in gaits

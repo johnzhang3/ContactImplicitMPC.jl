@@ -1,7 +1,7 @@
 using MeshCat
 
 video_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/videos")
-# video_path = joinpath(@__DIR__, "..", "results/videos_8_17")
+video_path = joinpath(@__DIR__, "..", "results/videos_8_17")
 
 # pace forward centroidal reference
 # pace_forward_cent_ref_tar_path = joinpath(video_path, "pace_forward_cent_ref.tar")
@@ -47,3 +47,8 @@ MeshCat.convert_frames_to_video(hopturn_cent_ref_tar_path, hopturn_cent_ref_mp4_
 hopturn_cent_opt_tar_path = joinpath(video_path, "hopturn.tar")
 hopturn_cent_opt_mp4_path = joinpath(video_path, "hopturn.mp4")
 MeshCat.convert_frames_to_video(hopturn_cent_opt_tar_path, hopturn_cent_opt_mp4_path, overwrite=true)
+
+# video traj optimal 
+video_opt_tar_path = joinpath(video_path, "video_traj.tar")
+video_opt_out_path = joinpath(video_path, "video_traj.mp4")
+MeshCat.convert_frames_to_video(video_opt_tar_path, video_opt_out_path, overwrite=true)
