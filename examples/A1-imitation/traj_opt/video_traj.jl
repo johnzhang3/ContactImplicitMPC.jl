@@ -135,9 +135,9 @@ for t = 1:T
             contact_constraints_inequality_1(model, env, h, x, u, w);
 
             # body/feet constraints
-            # x[3] - x_ref[t][3]; # body height
-            # x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
-            # x[9:3:18] - x_ref[t][9:3:18];
+            x[3] - x_ref[t][3]; # body height
+            x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
+            x[9:3:18] - x_ref[t][9:3:18];
             ]
         end
         push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28))))
@@ -148,9 +148,9 @@ for t = 1:T
             contact_constraints_inequality_T(model, env, h, x, u, w);
 
             # body/feet constraints
-            # x[3] - x_ref[t][3]; # body height
-            # x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
-            # x[9:3:18] - x_ref[t][9:3:18];
+            x[3] - x_ref[t][3]; # body height
+            x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
+            x[9:3:18] - x_ref[t][9:3:18];
             ]
         end
         push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8))));
@@ -163,9 +163,9 @@ for t = 1:T
             contact_constraints_inequality_t(model, env, h, x, u, w);
 
             # body/feet constraints
-            # x[3] - x_ref[t][3]; # body height
-            # x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
-            # x[9:3:18] - x_ref[t][9:3:18];
+            x[3] - x_ref[t][3]; # body height
+            x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
+            x[9:3:18] - x_ref[t][9:3:18];
             ]
         end
         push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32))) );
