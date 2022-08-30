@@ -3,40 +3,43 @@ using JSON
 using YAML
 
 include(joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/models/centroidal_quadruped.jl"))
-# include(joinpath(@__DIR__, "..", "..", "..", "examples/centroidal_quadruped/reference/trajopt_model_v2.jl"))
 include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped/visuals.jl"))
 include(joinpath("..", "..", "..", "examples/A1-imitation/utils/utilities.jl"))
 include(joinpath("..", "..", "..", "examples/A1-imitation/utils/plot_utils.jl"))
 
+gait = "pace_forward";
+
 # make new directory to store results
-result_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/results", "pace_forward")
+result_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/results", gait)
 run_path = mk_new_dir(result_path)
 
-ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroidal_ref_traj/pace_forward.json")
-config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/pace_forward.yaml")
+ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroidal_ref_traj/$(gait).json")
+config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/$(gait).yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
-weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64})
+weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
+plt_ref_foot_height(q_ref, run_path, "refFootHeight")
 
 h=0.05;
-q1 = deepcopy(q_ref[1]);
-# q1[9] = 0.0;
-q1[12] = 0.0;
-# q1[15] = 0.0;
-q1[18] = 0.0;
-qT = deepcopy(q_ref[end])
-# qT[9] = 0.0;
-qT[12] = 0.0;
-# qT[15] = 0.0;
-qT[18] = 0.0;
-
-# debugging, delete later
-# body_pos = q1[1:3]
-# f1_pos = q1[6 .+ (1:3)]
-# f2_pos = q1[6 + 3 .+ (1:3)]
-# f3_pos = q1[6 + 3 + 3 .+ (1:3)]
-# f4_pos = q1[6 + 3 + 3 + 3 .+ (1:3)]
-
-# norm(body_pos - f1_pos)
+q1 = deepcopy(q_ref[1])
+q1[9] = 0.0;
+# q1[12] = 0.0;
+q1[15] = 0.0;
+# q1[18] = 0.0;
+qT = deepcopy(q_ref[end]);
+qT[9] = 0.0;
+# qT[12] = 0.0;
+qT[15] = 0.0;
+# qT[18] = 0.0;
+ 
+# debugging stuff 
+# q_any = JSON.parsefile(ref_path)["Frames"];
+# q = Float64.(q_any[1])
+# body = q[1:6]
+# FR = q[6 .+ (1:3)]
+# FL = q[9 .+ (1:3)]
+# BR = q[12 .+ (1:3)]
+# BL = q[15 .+ (1:3)]
+# cat(body, FL, FR, BL, BR, dims=1)
 
 pushfirst!(q_ref, q1);
 push!(q_ref, qT);
@@ -138,10 +141,6 @@ for t = 1:T
             contact_constraints_inequality_1(model, env, h, x, u, w);
             # inequality (16)
             feet_position_inequality(model, env, h, x, u, w);
-            # body/feet constraints
-            # x[3] - x_ref[t][3]; # body height
-            # x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
-            # x[9:3:18] - x_ref[t][9:3:18];
             ]
         end
         push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28+16))))
@@ -152,10 +151,6 @@ for t = 1:T
             contact_constraints_inequality_T(model, env, h, x, u, w);
             # inequality (16)
             feet_position_inequality(model, env, h, x, u, w);
-            # body/feet constraints
-            # x[3] - x_ref[t][3]; # body height
-            # x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
-            # x[9:3:18] - x_ref[t][9:3:18];
             ]
         end
         push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8+16))));
@@ -168,10 +163,6 @@ for t = 1:T
             contact_constraints_inequality_t(model, env, h, x, u, w);
             # inequality (16)
             feet_position_inequality(model, env, h, x, u, w);
-            # body/feet constraints
-            # x[3] - x_ref[t][3]; # body height
-            # x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
-            # x[9:3:18] - x_ref[t][9:3:18];
             ]
         end
         push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32+16))) );
@@ -188,7 +179,7 @@ p = DTO.Solver(dyn, obj, cons, bnds,
         constr_viol_tol=tolerance));
 
 using Random
-Random.seed!(10)  ;      
+Random.seed!(Int(weights_dict["seed"]))  ;      
 # ## initialize
 x_interpolation = [x_ref[1], [[x_ref[t]; zeros(nθ); zeros(nx)] for t = 2:T]...];
 u_guess = [1.0e-1 * rand(nu) for t = 1:T-1]; # may need to run more than once to get good trajectory
@@ -201,12 +192,13 @@ DTO.initialize_controls!(p, u_guess);
 
 # ## solution
 x_sol, u_sol = DTO.get_trajectory(p);
-@show max_slack = maximum([u[end] for u in u_sol[1:end-1]])
-@show tot_slack = sum([u[end] for u in u_sol[1:end-1]])
+@show max_slack = maximum([u[end] for u in u_sol[1:end-1]]);
+@show tot_slack = sum([u[end] for u in u_sol[1:end-1]]);
 
-save_to_jld2(model, x_sol, u_sol, "pace_forward", tolerance,  run_path)
-plt_opt_foot_height("pace_forward", tolerance, run_path)
-YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict)
+save_to_jld2(model, x_sol, u_sol, gait, tolerance,  run_path);
+save_IPOPT_output(run_path)
+plt_opt_results(gait, tolerance, run_path)
+YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict);
 
 # ## visualize
 vis = Visualizer();

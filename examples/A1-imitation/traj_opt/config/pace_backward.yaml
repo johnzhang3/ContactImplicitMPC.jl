@@ -18,4 +18,5 @@ weight_v_t: 1.0e-2 # velocity
 weight_w_t: 1.0e-1 # jerk?
 
 
-
+# random seed
+seed: 1

@@ -18,5 +18,6 @@ weight_u_t: 1.0e-3 # control
 weight_v_t: 1.0e-1 # velocity
 weight_w_t: 1.0e-3 # jerk?
 
-
+# random seed
+seed: 1
 

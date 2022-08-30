@@ -32,7 +32,13 @@ function convert_q_from_json(path)
     q_ref = zeros(size(q_any)[1],18);
 
     for i = 1:size(q_any)[1]
-        q_ref[i,:] = Float64.(q_any[i]);
+        q = Float64.(q_any[i])
+        body = q[1:6]
+        FR = q[6 .+ (1:3)]
+        FL = q[9 .+ (1:3)]
+        BR = q[12 .+ (1:3)]
+        BL = q[15 .+ (1:3)]
+        q_ref[i,:] = cat(body, FL, FR, BL, BR, dims=1)
     end
 
     q_ref = [q_ref[i,:] for i in 1:size(q_ref,1)];
@@ -49,4 +55,13 @@ function mk_new_dir(path)
     end
     mkdir(run_dir)
     return run_dir
+end
+
+function save_IPOPT_output(dst_path)
+    # assume ouput.txt is in ContactImplicitMPC.jl 
+    #TODO: figure out why output.txt is stored here
+
+    output_src = joinpath(@__DIR__, "../../../output.txt")
+    dst_path = joinpath(dst_path, "output.txt")
+    mv(output_src, dst_path)
 end

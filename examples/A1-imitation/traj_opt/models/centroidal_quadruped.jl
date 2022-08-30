@@ -216,9 +216,14 @@ function feet_position_inequality(model, env, h, x, u, w)
         f4_x - body_x;
 
         # feet can't cross body mid-point in y
-        f1_y - body_y;
-        body_y - f2_y;
-        f3_y - body_y;
-        body_y - f4_y;
+        # f1_y - body_y;
+        # body_y - f2_y;
+        # f3_y - body_y;
+        # body_y - f4_y;
+        
+        body_y - f1_y;
+        f2_y - body_y;
+        body_y - f3_y;
+        f4_y - body_y;
     ]
 end

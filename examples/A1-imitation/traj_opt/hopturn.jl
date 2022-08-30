@@ -2,39 +2,41 @@ using ContactImplicitMPC
 using JSON
 using YAML
 
-include(joinpath(@__DIR__, "..", "..", "..", "examples/centroidal_quadruped/reference/trajopt_model_v2.jl"))
+include(joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/models/centroidal_quadruped.jl"))
 include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped/visuals.jl"))
 include(joinpath("..", "..", "..", "examples/A1-imitation/utils/utilities.jl"))
 include(joinpath("..", "..", "..", "examples/A1-imitation/utils/plot_utils.jl"))
 
+gait = "hopturn";
+
 # make new directory to store results
-result_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/results", "hopturn")
+result_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/results", gait)
 run_path = mk_new_dir(result_path)
 
-ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroidal_ref_traj/hopturn.json")
-config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/hopturn.yaml")
+ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroidal_ref_traj/$(gait).json")
+config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/$(gait).yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
-weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64})
+weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
+plt_ref_foot_height(q_ref, run_path, "refFootHeight")
+
 # h=0.05;
-q1 = deepcopy(q_ref[1])
+q1 = deepcopy(q_ref[1]);
 q1[9] = 0.0;
 q1[12] = 0.0;
 q1[15] = 0.0;
 q1[18] = 0.0;
-qT = deepcopy(q_ref[end])
+qT = deepcopy(q_ref[end]);
 qT[9] = 0.0;
 qT[12] = 0.0;
 qT[15] = 0.0;
 qT[18] = 0.0;
 
-pushfirst!(q_ref, q1)
-push!(q_ref, qT)
-# q1 = q_ref[1]
-# qT = q_ref[T+1]
+pushfirst!(q_ref, q1);
+push!(q_ref, qT);
 
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
-model.μ_world = 1;
+model.μ_world = 1
 env = s.env;
 
 nx = 2 * model.nq;
@@ -108,11 +110,6 @@ xuT = [Inf * ones(nq); qT; Inf * ones(nθ); Inf * ones(nx)];
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)];
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)];
 
-# bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
-# bndt = DTO.Bound(nx + nθ + nx, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
-# bndT = DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT)
-# bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
-
 bnds = DTO.Bound{Float64}[];
 push!(bnds, DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu));
 for t = 2:T-1
@@ -133,27 +130,21 @@ for t = 1:T
             contact_constraints_equality(model, env, h, x, u, w);
             # inequality (28)
             contact_constraints_inequality_1(model, env, h, x, u, w);
-
-            # body/feet constraints
-            x[3] - x_ref[t][3]; # body height
-            x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
-            x[9:3:18] - x_ref[t][9:3:18];
+            # inequality (16)
+            feet_position_inequality(model, env, h, x, u, w);
             ]
         end
-        push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28))))
+        push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28+16))))
     elseif t == T
         function constraints_T(x, u, w)
             [
             # inequality (8)
             contact_constraints_inequality_T(model, env, h, x, u, w);
-
-            # body/feet constraints
-            x[3] - x_ref[t][3]; # body height
-            x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
-            x[9:3:18] - x_ref[t][9:3:18];
+            # inequality (16)
+            feet_position_inequality(model, env, h, x, u, w);
             ]
         end
-        push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8))));
+        push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8+16))));
     else
         function constraints_t(x, u, w)
             [
@@ -161,14 +152,11 @@ for t = 1:T
             contact_constraints_equality(model, env, h, x, u, w);
             # inequality (32)
             contact_constraints_inequality_t(model, env, h, x, u, w);
-
-            # body/feet constraints
-            x[3] - x_ref[t][3]; # body height
-            x[model.nq + 3] - x_ref[t][model.nq + 3]; # body height
-            x[9:3:18] - x_ref[t][9:3:18];
+            # inequality (16)
+            feet_position_inequality(model, env, h, x, u, w);
             ]
         end
-        push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32))) );
+        push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32+16))) );
     end
 end
 
@@ -182,7 +170,7 @@ p = DTO.Solver(dyn, obj, cons, bnds,
         constr_viol_tol=tolerance));
 
 using Random
-Random.seed!(10)  ;      
+Random.seed!(Int(weights_dict["seed"]))  ;      
 # ## initialize
 x_interpolation = [x_ref[1], [[x_ref[t]; zeros(nθ); zeros(nx)] for t = 2:T]...];
 u_guess = [1.0e-1 * rand(nu) for t = 1:T-1]; # may need to run more than once to get good trajectory
@@ -195,12 +183,13 @@ DTO.initialize_controls!(p, u_guess);
 
 # ## solution
 x_sol, u_sol = DTO.get_trajectory(p);
-@show max_slack = maximum([u[end] for u in u_sol[1:end-1]])
-@show tot_slack = sum([u[end] for u in u_sol[1:end-1]])
+@show max_slack = maximum([u[end] for u in u_sol[1:end-1]]);
+@show tot_slack = sum([u[end] for u in u_sol[1:end-1]]);
 
-save_to_jld2(model, x_sol, u_sol, "hopturn", tolerance,  run_path)
-plt_opt_foot_height("hopturn", tolerance, run_path)
-YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict)
+save_to_jld2(model, x_sol, u_sol, gait, tolerance,  run_path);
+save_IPOPT_output(run_path)
+plt_opt_results(gait, tolerance, run_path)
+YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict);
 
 # ## visualize
 vis = Visualizer();
