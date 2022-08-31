@@ -167,10 +167,19 @@ function feet_position_inequality(model, env, h, x, u, w)
 
     # body and feet positions
     body_pos = q2[1:3]
-    f1_pos = q2[6 .+ (1:3)]
-    f2_pos = q2[6 + 3 .+ (1:3)]
-    f3_pos = q2[6 + 3 + 3 .+ (1:3)]
-    f4_pos = q2[6 + 3 + 3 + 3 .+ (1:3)]
+    body_rot = q2[4:6]
+
+    # transfomation matrices
+    translation = Translation(-body_pos[1], -body_pos[2], -body_pos[3])
+    # rotation = LinearMap(RotXYZ(body_rot[1], body_rot[2], body_rot))
+    # composed = compose(rotation, translation)
+    
+    # foot position in body frame
+    f1_pos = composed(q2[6 .+ (1:3)])
+    f2_pos = composed(q2[6 + 3 .+ (1:3)])
+    f3_pos = composed(q2[6 + 3 + 3 .+ (1:3)])
+    f4_pos = composed(q2[6 + 3 + 3 + 3 .+ (1:3)])
+
 
     body_x = body_pos[1]
     f1_x = f1_pos[1]
@@ -190,12 +199,16 @@ function feet_position_inequality(model, env, h, x, u, w)
     f3_z = f3_pos[3]
     f4_z = f4_pos[3]
 
-    # feet distances from body
-    f1_dist = norm(body_pos .- f1_pos)
-    f2_dist = norm(body_pos .- f2_pos)
-    f3_dist = norm(body_pos .- f3_pos)
-    f4_dist = norm(body_pos .- f4_pos)
-    
+    # feet distances from body position in body frame (0,0,0)
+    # f1_dist = norm(body_pos .- f1_pos)
+    # f2_dist = norm(body_pos .- f2_pos)
+    # f3_dist = norm(body_pos .- f3_pos)
+    # f4_dist = norm(body_pos .- f4_pos)
+    f1_dist = norm(f1_pos)
+    f2_dist = norm(f2_pos)
+    f3_dist = norm(f3_pos)
+    f4_dist = norm(f4_pos)
+
     [
         # feet can't be too far from body
         f1_dist - max_foot_dist_from_body;
@@ -204,26 +217,36 @@ function feet_position_inequality(model, env, h, x, u, w)
         f4_dist - max_foot_dist_from_body;
 
         # feet can't exceed body height 
-        f1_z - body_z;
-        f2_z - body_z;
-        f3_z - body_z;
-        f4_z - body_z;
-
+        # f1_z - body_z;
+        # f2_z - body_z;
+        # f3_z - body_z;
+        # f4_z - body_z;
+        f1_z;
+        f2_z;
+        f3_z;
+        f4_z;
         # feet can't cross body mid-point in x
-        body_x - f1_x;
-        body_x - f2_x;
-        f3_x - body_x;
-        f4_x - body_x;
-
+        # body_x - f1_x;
+        # body_x - f2_x;
+        # f3_x - body_x;
+        # f4_x - body_x;
+        -f1_x;
+        -f2_x;
+        f3_x;
+        f4_x;
         # feet can't cross body mid-point in y
         # f1_y - body_y;
         # body_y - f2_y;
         # f3_y - body_y;
         # body_y - f4_y;
         
-        body_y - f1_y;
-        f2_y - body_y;
-        body_y - f3_y;
-        f4_y - body_y;
+        # body_y - f1_y;
+        # f2_y - body_y;
+        # body_y - f3_y;
+        # f4_y - body_y;
+        -f1_y;
+        f2_y;
+        -f3_y;
+        f4_y;
     ]
 end
