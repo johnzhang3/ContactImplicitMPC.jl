@@ -38,6 +38,10 @@ function convert_q_from_json(path)
         FL = q[9 .+ (1:3)]
         BR = q[12 .+ (1:3)]
         BL = q[15 .+ (1:3)]
+        FR[2] = deepcopy(FR[2]*1.7)
+        FL[2] = deepcopy(FL[2]*1.7)
+        BR[2] = deepcopy(BR[2]*1.7)
+        BL[2] = deepcopy(BL[2]*1.7)
         q_ref[i,:] = cat(body, FL, FR, BL, BR, dims=1)
     end
 
@@ -78,23 +82,23 @@ function rotation_matrix(euler_angle)
     return LinearMap([cos(ψ)cos(θ) cos(ψ)sin(θ)sin(ϕ)-sin(ψ)cos(ϕ) cos(ψ)()])
 end
 
-q = Vector{Float64}([0,0,0.3, 0.1, 0.12, 0.0, 0.19, -0.126, 0.05])
-pos = q[1:3]
-rot = q[4:6]
-f1 = q[7:9]
+# q = Vector{Float64}([0,0,0.3, 0.1, 0.12, 0.0, 0.19, -0.126, 0.05])
+# pos = q[1:3]
+# rot = q[4:6]
+# f1 = q[7:9]
 
-R = RotXYZ(q[4], q[5], q[6])
+# R = RotXYZ(q[4], q[5], q[6])
 
-trans = Translation(-q[1], -q[2], -q[3])
-trans = recenter(trans, pos)
-rot = LinearMap(RotXYZ(q[4], q[5], q[6]))
-rot = recenter(rot, pos)
-composed = compose(trans, rot)
+# trans = Translation(-q[1], -q[2], -q[3])
+# trans = recenter(trans, pos)
+# rot = LinearMap(RotXYZ(q[4], q[5], q[6]))
+# rot = recenter(rot, pos)
+# composed = compose(trans, rot)
 
-composed(f1)
-composed(pos)
+# composed(f1)
+# composed(pos)
 
-composed2 = compose(rot, trans)
-f_pos = composed2(f1)
-norm(-f_pos)
-composed2(pos)
+# composed2 = compose(rot, trans)
+# f_pos = composed2(f1)
+# norm(-f_pos)
+# composed2(pos)
