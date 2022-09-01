@@ -12,7 +12,7 @@ weight_u_i: 1.0e-3
 weight_s_i: 1.0e+4
 
 # running cost
-weight_x_t: 1.0e+5 # state
+weight_x_t: 1.0e+4 # state
 weight_s_t: 1.0e+4 # slack
 weight_u_t: 1.0e-3 # control
 weight_v_t: 1.0e-1 # velocity

@@ -14,7 +14,7 @@ result_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/result
 run_path = mk_new_dir(result_path)
 
 ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/from_gengshan/$(gait).json")
-config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/$(gait).yaml"))
+config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/$(gait).yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
 weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
 plt_ref_foot_height(q_ref, run_path, "refFootHeight")

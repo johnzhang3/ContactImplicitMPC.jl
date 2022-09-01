@@ -17,7 +17,7 @@ ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroida
 config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/$(gait).yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
 weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
-plt_ref_foot_height(q_ref, run_path, "refFootHeight")
+plt_ref_traj(q_ref, run_path, gait)
 
 # h=0.05;
 q1 = deepcopy(q_ref[1]);
@@ -36,7 +36,7 @@ push!(q_ref, qT);
 
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
-model.μ_world = 1
+model.μ_world = 10;
 env = s.env;
 
 nx = 2 * model.nq;
@@ -86,7 +86,10 @@ for t = 1:T
             u_control = u;
             w = (u_control - u_previous) ./ h;
             J += 0.5 * weights_dict["weight_w_t"] * dot(w, w);
-            J += weights_dict["weight_x_t"] * transpose(x[1:nx] - x_ref[t]) * Diagonal(ones(nx)) * (x[1:nx] - x_ref[t]);
+            relative_weight = ones(nx)
+            relative_weight[1:6] = 1*ones(6)
+            J += weights_dict["weight_x_t"] * transpose(x[1:nx] - x_ref[t]) * Diagonal(relative_weight) * (x[1:nx] - x_ref[t]);
+            # J += weights_dict["weight_x_t"] * transpose(x[1:nx] - x_ref[t]) * Diagonal(ones(nx)) * (x[1:nx] - x_ref[t]);
             J += 0.5 * weights_dict["weight_u_t"] * transpose(u[1:model.nu]) * Diagonal(ones(model.nu)) * u[1:model.nu];
             # J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)];
             J += weights_dict["weight_s_t"] * u[end]; # slack
@@ -164,7 +167,7 @@ end
 tolerance = 1.0e-3;
 p = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
-        max_iter=10000,
+        max_iter=100000,
         max_cpu_time = 30000.0,
         tol=tolerance,
         constr_viol_tol=tolerance));
@@ -173,7 +176,7 @@ using Random
 Random.seed!(Int(weights_dict["seed"]))  ;      
 # ## initialize
 x_interpolation = [x_ref[1], [[x_ref[t]; zeros(nθ); zeros(nx)] for t = 2:T]...];
-u_guess = [1.0e-1 * rand(nu) for t = 1:T-1]; # may need to run more than once to get good trajectory
+u_guess = [1.0e+1 * rand(nu) for t = 1:T-1]; # may need to run more than once to get good trajectory
 
 DTO.initialize_states!(p, x_interpolation);
 DTO.initialize_controls!(p, u_guess);
@@ -187,7 +190,7 @@ x_sol, u_sol = DTO.get_trajectory(p);
 @show tot_slack = sum([u[end] for u in u_sol[1:end-1]]);
 
 save_to_jld2(model, x_sol, u_sol, gait, tolerance,  run_path);
-save_IPOPT_output(run_path)
+
 plt_opt_results(gait, tolerance, run_path)
 YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict);
 
@@ -195,3 +198,31 @@ YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict);
 vis = Visualizer();
 render(vis);
 visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
+save_IPOPT_output(run_path)
+
+# # ## problem
+# tolerance = 1.0e-3;
+# p = DTO.Solver(dyn, obj, cons, bnds,
+#     options=DTO.Options(
+#         max_iter=100000,
+#         max_cpu_time = 30000.0,
+#         tol=tolerance,
+#         constr_viol_tol=tolerance));
+
+# DTO.initialize_states!(p, x_sol);
+# DTO.initialize_controls!(p, u_sol);
+
+# ## solve
+# @time DTO.solve!(p);
+
+# # ## solution
+# x_sol, u_sol = DTO.get_trajectory(p);
+# @show max_slack = maximum([u[end] for u in u_sol[1:end-1]]);
+# @show tot_slack = sum([u[end] for u in u_sol[1:end-1]]);
+
+# save_to_jld2(model, x_sol, u_sol, gait, tolerance,  run_path);
+
+
+# plt_opt_results(gait, tolerance, run_path)
+# YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict);
+

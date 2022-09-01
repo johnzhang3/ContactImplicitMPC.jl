@@ -38,10 +38,11 @@ function convert_q_from_json(path)
         FL = q[9 .+ (1:3)]
         BR = q[12 .+ (1:3)]
         BL = q[15 .+ (1:3)]
-        FR[2] = deepcopy(FR[2]*1.7)
-        FL[2] = deepcopy(FL[2]*1.7)
-        BR[2] = deepcopy(BR[2]*1.7)
-        BL[2] = deepcopy(BL[2]*1.7)
+        # TODO: resolve this hack
+        # FR[2] = deepcopy(FR[2]*1.5)
+        # FL[2] = deepcopy(FL[2]*1.5)
+        # BR[2] = deepcopy(BR[2]*1.5)
+        # BL[2] = deepcopy(BL[2]*1.5)
         q_ref[i,:] = cat(body, FL, FR, BL, BR, dims=1)
     end
 
@@ -79,26 +80,41 @@ function rotation_matrix(euler_angle)
     θ = euler_angle[2]
     ψ = euler_angle[3]
 
-    return LinearMap([cos(ψ)cos(θ) cos(ψ)sin(θ)sin(ϕ)-sin(ψ)cos(ϕ) cos(ψ)()])
+    return LinearMap([cos(ψ)cos(θ) cos(ψ)sin(θ)sin(ϕ)-sin(ψ)cos(ϕ) cos(ψ)sin(θ)cos(ϕ)+sin(ψ)sin(ϕ);
+                    sin(ψ)cos(θ) sin(ψ)sin(θ)sin(ϕ)+cos(ψ)cos(ϕ) sin(ψ)sin(θ)cos(ϕ)-cos(ψ)cos(ϕ);
+                    -sin(θ) cos(θ)sin(ψ) cos(θ)cos(ϕ)])
+    # return [cos(ψ)cos(θ) cos(ψ)sin(θ)sin(ϕ)-sin(ψ)cos(ϕ) cos(ψ)sin(θ)cos(ϕ)+sin(ψ)sin(ϕ);
+    #         sin(ψ)cos(θ) sin(ψ)sin(θ)sin(ϕ)+cos(ψ)cos(ϕ) sin(ψ)sin(θ)cos(ϕ)-cos(ψ)cos(ϕ);
+    #         -sin(θ) cos(θ)sin(ψ) cos(θ)cos(ϕ)]
 end
 
-# q = Vector{Float64}([0,0,0.3, 0.1, 0.12, 0.0, 0.19, -0.126, 0.05])
+# q = Vector{Float64}([0,0,0.3, 0.0, 0.0, 0.0, 0.19, -0.12, 0.00])
 # pos = q[1:3]
 # rot = q[4:6]
 # f1 = q[7:9]
 
-# R = RotXYZ(q[4], q[5], q[6])
 
 # trans = Translation(-q[1], -q[2], -q[3])
-# trans = recenter(trans, pos)
-# rot = LinearMap(RotXYZ(q[4], q[5], q[6]))
-# rot = recenter(rot, pos)
-# composed = compose(trans, rot)
 
-# composed(f1)
-# composed(pos)
+# rot_xyz = LinearMap(RotZYX(q[4], q[5], q[6]))
 
-# composed2 = compose(rot, trans)
-# f_pos = composed2(f1)
-# norm(-f_pos)
-# composed2(pos)
+# composed1 = compose(rot_xyz, trans)
+# f_pos = composed1(f1)
+
+# rot_2 = [π/2, 0, 0]
+# f2 = [-0.12, 0.17, 0]
+
+# R_forward = LinearMap(RotXYZ(roll=0, pitch=0, yaw=-pi/2))
+
+# trans_forward = Translation(0, 0, -0.3)
+
+# trans_forward(R_forward(f2))
+
+# R_inv = LinearMap(RotXYZ(roll=0, pitch=0, yaw=pi/2))
+# trans_inv = Translation(0, 0, 0.3)
+
+# composed = compose(R_inv, trans_inv)
+# inv(composed)(f2)
+
+
+

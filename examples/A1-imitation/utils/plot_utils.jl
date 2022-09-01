@@ -22,16 +22,45 @@ function plt_opt_foot_height(gait, tol, path)
     savefig(fig_file_path)
 end
 
-function plt_ref_foot_height(q, dir, title)
+function plt_ref_traj(q, dir, gait)
     q_new = zeros(size(q)[1], 18)
     for i = 1:size(q)[1]
         q_new[i, :] = Float64.(q[i])
     end
-    plot(q_new[:, 9], label = "foot 1", title = title, lw=4)
+
+    # heights
+    plot(q_new[:, 3], label = "body", title = "ref $(gait) heights", lw=4)
+    plot!(q_new[:, 9], label = "foot 1", lw=4)
     plot!(q_new[:, 12], label = "foot 2", lw=4)
     plot!(q_new[:, 15], label = "foot 3", lw=4)
     plot!(q_new[:, 18], label = "foot 4", lw=4)
-    savefig(joinpath(dir, "$(title).png"))
+    savefig(joinpath(dir, "ref_$(gait)_height.png"))
+
+    # x 
+    plot(q_new[:, 1], label = "body", title = "ref $(gait) x", lw=4)
+    plot!(q_new[:, 7], label = "foot 1", lw=4)
+    plot!(q_new[:, 10], label = "foot 2", lw=4)
+    plot!(q_new[:, 13], label = "foot 3", lw=4)
+    plot!(q_new[:, 16], label = "foot 4", lw=4)
+    fig_file_path = joinpath(dir, "ref_$(gait)_x.png")
+    savefig(fig_file_path)
+
+    # y 
+    plot(q_new[:, 2], label = "body", title = "ref $(gait) y", lw=4)
+    plot!(q_new[:, 8], label = "foot 1", lw=4)
+    plot!(q_new[:, 11], label = "foot 2", lw=4)
+    plot!(q_new[:, 14], label = "foot 3", lw=4)
+    plot!(q_new[:, 17], label = "foot 4", lw=4)
+    fig_file_path = joinpath(dir, "ref_$(gait)_y.png")
+    savefig(fig_file_path)
+
+    # roll pitch yaw angles
+    plot(q_new[:, 4], label = "yaw", title = "ref $(gait) euler angles", lw=4)
+    plot!(q_new[:, 5], label = "pitch", lw=4)
+    plot!(q_new[:, 6], label = "roll", lw=4)
+    fig_file_path = joinpath(dir, "ref_$(gait)euler_angle.png")
+    savefig(fig_file_path)
+
 end
 
 function plt_opt_results(gait, tol, path)

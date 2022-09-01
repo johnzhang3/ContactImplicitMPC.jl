@@ -20,7 +20,7 @@ weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
 plt_ref_foot_height(q_ref, run_path, "refFootHeight")
 
 h=0.05;
-q1 = deepcopy(q_ref[1])
+q1 = deepcopy(q_ref[1]);
 q1[9] = 0.0;
 # q1[12] = 0.0;
 q1[15] = 0.0;
@@ -30,16 +30,6 @@ qT[9] = 0.0;
 # qT[12] = 0.0;
 qT[15] = 0.0;
 # qT[18] = 0.0;
- 
-# debugging stuff 
-# q_any = JSON.parsefile(ref_path)["Frames"];
-# q = Float64.(q_any[1])
-# body = q[1:6]
-# FR = q[6 .+ (1:3)]
-# FL = q[9 .+ (1:3)]
-# BR = q[12 .+ (1:3)]
-# BL = q[15 .+ (1:3)]
-# cat(body, FL, FR, BL, BR, dims=1)
 
 pushfirst!(q_ref, q1);
 push!(q_ref, qT);
@@ -196,7 +186,7 @@ x_sol, u_sol = DTO.get_trajectory(p);
 @show tot_slack = sum([u[end] for u in u_sol[1:end-1]]);
 
 save_to_jld2(model, x_sol, u_sol, gait, tolerance,  run_path);
-save_IPOPT_output(run_path)
+
 plt_opt_results(gait, tolerance, run_path)
 YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict);
 
@@ -204,3 +194,4 @@ YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict);
 vis = Visualizer();
 render(vis);
 visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
+save_IPOPT_output(run_path)
