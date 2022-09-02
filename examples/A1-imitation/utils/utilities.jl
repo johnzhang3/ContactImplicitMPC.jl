@@ -43,7 +43,8 @@ function convert_q_from_json(path)
         # FL[2] = deepcopy(FL[2]*1.5)
         # BR[2] = deepcopy(BR[2]*1.5)
         # BL[2] = deepcopy(BL[2]*1.5)
-        q_ref[i,:] = cat(body, FL, FR, BL, BR, dims=1)
+        # q_ref[i,:] = cat(body, FL, FR, BL, BR, dims=1)
+        q_ref[i, :] = cat(body, FR, FL, BL, BR, dims=1)
     end
 
     q_ref = [q_ref[i,:] for i in 1:size(q_ref,1)];

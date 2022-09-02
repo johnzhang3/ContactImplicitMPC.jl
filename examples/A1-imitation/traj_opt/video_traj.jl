@@ -7,17 +7,19 @@ include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped/
 include(joinpath("..", "..", "..", "examples/A1-imitation/utils/utilities.jl"))
 include(joinpath("..", "..", "..", "examples/A1-imitation/utils/plot_utils.jl"))
 
-gait = "video_traj";
+gait = "1005";
 
 # make new directory to store results
 result_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/results", gait)
 run_path = mk_new_dir(result_path)
 
-ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/from_gengshan/$(gait).json")
+ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/video_ref_traj/trajs_json/$(gait).json")
 config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/$(gait).yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
+q_ref = q_ref[140:200]
+T=60
 weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
-plt_ref_foot_height(q_ref, run_path, "refFootHeight")
+plt_ref_traj(q_ref, run_path, gait)
 
 # h=0.05;
 q1 = deepcopy(q_ref[1]);
@@ -131,20 +133,22 @@ for t = 1:T
             # inequality (28)
             contact_constraints_inequality_1(model, env, h, x, u, w);
             # inequality (16)
-            feet_position_inequality(model, env, h, x, u, w);
+            # feet_position_inequality(model, env, h, x, u, w);
             ]
         end
-        push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28+16))))
+        # push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28+16))))
+        push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28))))
     elseif t == T
         function constraints_T(x, u, w)
             [
             # inequality (8)
             contact_constraints_inequality_T(model, env, h, x, u, w);
             # inequality (16)
-            feet_position_inequality(model, env, h, x, u, w);
+            # feet_position_inequality(model, env, h, x, u, w);
             ]
         end
-        push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8+16))));
+        # push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8+16))));
+        push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8))));
     else
         function constraints_t(x, u, w)
             [
@@ -153,10 +157,11 @@ for t = 1:T
             # inequality (32)
             contact_constraints_inequality_t(model, env, h, x, u, w);
             # inequality (16)
-            feet_position_inequality(model, env, h, x, u, w);
+            # feet_position_inequality(model, env, h, x, u, w);
             ]
         end
-        push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32+16))) );
+        # push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32+16))) );
+        push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32))) );
     end
 end
 
