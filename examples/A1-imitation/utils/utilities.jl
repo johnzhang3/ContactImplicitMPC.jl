@@ -23,7 +23,7 @@ function save_to_jld2(model, x_sol, u_sol, gait, tol, path)
 
 end
 
-function convert_q_from_json(path)
+function convert_q_from_json(path, ft_flip)
     # input:  path of json fine
     # output: q as vector of vecotor Float64
     q_any = JSON.parsefile(path)["Frames"];
@@ -38,13 +38,24 @@ function convert_q_from_json(path)
         FL = q[9 .+ (1:3)]
         BR = q[12 .+ (1:3)]
         BL = q[15 .+ (1:3)]
-        # TODO: resolve this hack
+        # # x_scale
+        # FR[1] = deepcopy(FR[1]*x_scale)
+        # FL[1] = deepcopy(FL[1]*x_scale)
+        # BR[1] = deepcopy(BR[1]*x_scale)
+        # BL[1] = deepcopy(BL[1]*x_scale)
+        # # y_scale
         # FR[2] = deepcopy(FR[2]*1.5)
         # FL[2] = deepcopy(FL[2]*1.5)
         # BR[2] = deepcopy(BR[2]*1.5)
         # BL[2] = deepcopy(BL[2]*1.5)
-        # q_ref[i,:] = cat(body, FL, FR, BL, BR, dims=1)
-        q_ref[i, :] = cat(body, FR, FL, BL, BR, dims=1)
+        
+        if ft_flip == true
+            # TODO: resolve this hack
+            
+            q_ref[i,:] = cat(body, FL, FR, BL, BR, dims=1)
+        else
+            q_ref[i, :] = cat(body, FR, FL, BL, BR, dims=1)
+        end
     end
 
     q_ref = [q_ref[i,:] for i in 1:size(q_ref,1)];
