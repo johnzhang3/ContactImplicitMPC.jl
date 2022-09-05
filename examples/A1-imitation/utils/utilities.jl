@@ -38,17 +38,7 @@ function convert_q_from_json(path, ft_flip)
         FL = q[9 .+ (1:3)]
         BR = q[12 .+ (1:3)]
         BL = q[15 .+ (1:3)]
-        # # x_scale
-        # FR[1] = deepcopy(FR[1]*x_scale)
-        # FL[1] = deepcopy(FL[1]*x_scale)
-        # BR[1] = deepcopy(BR[1]*x_scale)
-        # BL[1] = deepcopy(BL[1]*x_scale)
-        # # y_scale
-        # FR[2] = deepcopy(FR[2]*1.5)
-        # FL[2] = deepcopy(FL[2]*1.5)
-        # BR[2] = deepcopy(BR[2]*1.5)
-        # BL[2] = deepcopy(BL[2]*1.5)
-        
+
         if ft_flip == true
             # TODO: resolve this hack
             
