@@ -81,6 +81,13 @@ function plt_opt_results(gait, tol, path)
     fig_file_path = joinpath(path, "opt_$(gait)_height.png")
     savefig(fig_file_path)
 
+    # body euler angles
+    plot(q_opt[:, 4], label = "yaw", title = "$(gait) euler angles", lw=4)
+    plot!(q_opt[:, 5], label = "pitch", lw=4)
+    plot!(q_opt[:, 6], label = "roll", lw=4)
+    fig_file_path = joinpath(path, "opt_$(gait)_euler_angle.png")
+    savefig(fig_file_path)
+
     # x 
     plot(q_opt[:, 1], label = "body", title = "$(gait) x", lw=4)
     plot!(q_opt[:, 7], label = "foot 1", lw=4)

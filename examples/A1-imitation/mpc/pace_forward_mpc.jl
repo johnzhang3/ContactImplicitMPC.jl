@@ -10,12 +10,12 @@ s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
 env = s.env;
 
-ref_path = joinpath(@__DIR__, "..", "results", "pace_forward", "run21", "pace_forward_tol0.001.jld2");
+ref_path = joinpath(@__DIR__, "..", "results", "pace_forward", "run45", "pace_forward_tol0.001.jld2");
 ref_traj = deepcopy(get_trajectory(s.model, s.env, ref_path, load_type = :split_traj_alt));
-
+ref_traj
 # update_friction_coefficient!(ref_traj, model, env);
-H = ref_traj.H;
-h = ref_traj.h;
+H = ref_traj.H
+h = ref_traj.h
 
 # ## MPC setup
 N_sample = 5;
