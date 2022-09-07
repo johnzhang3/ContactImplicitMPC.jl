@@ -34,7 +34,7 @@ dyn = [d1, [dt for t = 2:T-1]...]
 # ## initial conditions
 body_height = 0.3
 foot_x = 0.17
-foot_y = 0.10
+foot_y = 0.17
 
 function nominal_configuration(model::CentroidalQuadruped)
     [
