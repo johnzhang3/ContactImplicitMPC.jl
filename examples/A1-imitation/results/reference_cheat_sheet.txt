@@ -1,0 +1,5 @@
+notes on reference trajectories
+
+standing:
+run8: 10hz, y=0.17 (working) 
+run9: 10hz, y=0.10
