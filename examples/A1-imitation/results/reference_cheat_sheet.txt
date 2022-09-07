@@ -1,5 +1,11 @@
 notes on reference trajectories
 
 standing:
-run8: 10hz, y=0.17 (working) 
-run9: 10hz, y=0.10
+run8: 10hz, y=0.17 (works in gazebo) 
+run9: 10hz, y=0.10 (works in gazebo)
+
+trotting:
+
+
+pace forward:
+run1: 20hz 

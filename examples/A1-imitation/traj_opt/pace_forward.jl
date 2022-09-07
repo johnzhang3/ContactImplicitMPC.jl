@@ -17,23 +17,23 @@ ref_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/centroida
 config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_opt/config/$(gait).yaml")
 q_ref, h, T = convert_q_from_json(ref_path);
 
-function adjust_ref!(q_ref)
-    # rotate and offset reference trajectory
-    for i = 1:size(q_ref)[1]
-        # body 
-        q_ref[i][1] = q_ref[i][1] 
-        q_ref[i][2] = q_ref[i][2] 
-        q_ref[i][3] = q_ref[i][3]
+# function adjust_ref!(q_ref)
+#     # rotate and offset reference trajectory
+#     for i = 1:size(q_ref)[1]
+#         # body 
+#         q_ref[i][1] = q_ref[i][1] 
+#         q_ref[i][2] = q_ref[i][2] 
+#         q_ref[i][3] = q_ref[i][3]
 
-        # feet y
-        q_ref[i][8] = q_ref[i][8] + 0.05
-        q_ref[i][11] = q_ref[i][11] - 0.05
-        q_ref[i][14] = q_ref[i][14] + 0.05
-        q_ref[i][17] = q_ref[i][17] - 0.05
+#         # feet y
+#         q_ref[i][8] = q_ref[i][8] + 0.05
+#         q_ref[i][11] = q_ref[i][11] - 0.05
+#         q_ref[i][14] = q_ref[i][14] + 0.05
+#         q_ref[i][17] = q_ref[i][17] - 0.05
         
-    end
-end
-adjust_ref!(q_ref)
+#     end
+# end
+# adjust_ref!(q_ref)
 plt_ref_traj(q_ref, run_path, "refFootHeight")
 weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
 
