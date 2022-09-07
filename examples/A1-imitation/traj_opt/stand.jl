@@ -12,7 +12,7 @@ run_path = mk_new_dir(result_path)
 
 # ## horizon
 T = 11
-h = 0.05
+h = 0.10
 
 # ## centroidal_quadruped
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -184,3 +184,34 @@ vis = Visualizer();
 render(vis);
 visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
 save_IPOPT_output(run_path)
+
+######## debugging ###############
+old_traj_path = joinpath(@__DIR__, "../../centroidal_quadruped/reference/stand_0.1.jld2")
+@load old_traj_path qm um γm bm ψm ηm μm hm
+
+q_opt = zeros(size(qm)[1],size(qm[1])[1])
+for i = 1:size(qm)[1]
+    q_opt[i,:] = Float64.(qm[i]);
+end
+
+plot(q_opt[:, 3], label = "body", title = "$(gait) heights", lw=4)
+plot!(q_opt[:, 9], label = "foot 1", lw=4)
+plot!(q_opt[:, 12], label = "foot 2", lw=4)
+plot!(q_opt[:, 15], label = "foot 3", lw=4)
+plot!(q_opt[:, 18], label = "foot 4", lw=4)
+
+plot(q_opt[:, 4], label = "yaw", title = "$(gait) euler angles", lw=4)
+plot!(q_opt[:, 5], label = "pitch", lw=4)
+plot!(q_opt[:, 6], label = "roll", lw=4)
+
+plot(q_opt[:, 1], label = "body", title = "$(gait) x", lw=4)
+plot!(q_opt[:, 7], label = "foot 1", lw=4)
+plot!(q_opt[:, 10], label = "foot 2", lw=4)
+plot!(q_opt[:, 13], label = "foot 3", lw=4)
+plot!(q_opt[:, 16], label = "foot 4", lw=4)
+    
+plot(q_opt[:, 2], label = "body", title = "$(gait) y", lw=4)
+plot!(q_opt[:, 8], label = "foot 1", lw=4)
+plot!(q_opt[:, 11], label = "foot 2", lw=4)
+plot!(q_opt[:, 14], label = "foot 3", lw=4)
+plot!(q_opt[:, 17], label = "foot 4", lw=4)
