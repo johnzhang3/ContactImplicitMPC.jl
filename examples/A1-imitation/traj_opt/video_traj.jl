@@ -20,9 +20,9 @@ q_ref = q_ref[140:190]
 T=50
 
 # ## visualize
-# vis = Visualizer();
-# render(vis);
-# visualize!(vis, model, q_ref);
+vis = Visualizer();
+render(vis);
+visualize!(vis, model, q_ref);
 function adjust_ref!(q_ref)
     # rotate and offset reference trajectory
     rot = LinearMap(RotZ(π/2))
