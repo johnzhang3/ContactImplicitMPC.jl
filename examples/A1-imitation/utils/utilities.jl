@@ -23,6 +23,17 @@ function save_to_jld2(model, x_sol, u_sol, gait, tol, path)
 
 end
 
+function save_jld2_to_txt(path, gait, tol)
+    data_path = joinpath(path, "$(gait)_tol$(tol).jld2")
+    txt_path = joinpath(path, "$(gait)_tol$(tol).txt")
+    @load data_path qm um γm bm ψm ηm μm hm
+    dict = Dict("FrameDuration" => hm,
+    "Frames" =>qm)
+    open(txt_path, "w") do file
+        JSON.print(file, dict)
+    end
+end
+
 function convert_q_from_json(path, ft_flip)
     # input:  path of json fine
     # output: q as vector of vecotor Float64
@@ -73,50 +84,52 @@ function save_IPOPT_output(dst_path)
     mv(output_src, dst_path)
 end
 
-function world_to_body_frame(q)
-    R = 1
+
+function huber_obj(model, nx, nu, nθ, T, α, weights)
+    obj = DTO.cost{Float64}[]
+    for t = 1:T
+        if t == T
+            function objT(x, u, w)
+                J = 0.0
+                
+
+            end
+        elseif t == 1
+            function obj1(x, u, w)
+                J = 0.0
+            end
+        else
+            function objt(x, u, w)
+                J = 0.0
+            end
+        end
+    end
 end
 
-function rotation_matrix(euler_angle)
-    ϕ = euler_angle[1]
-    θ = euler_angle[2]
-    ψ = euler_angle[3]
-
-    return LinearMap([cos(ψ)cos(θ) cos(ψ)sin(θ)sin(ϕ)-sin(ψ)cos(ϕ) cos(ψ)sin(θ)cos(ϕ)+sin(ψ)sin(ϕ);
-                    sin(ψ)cos(θ) sin(ψ)sin(θ)sin(ϕ)+cos(ψ)cos(ϕ) sin(ψ)sin(θ)cos(ϕ)-cos(ψ)cos(ϕ);
-                    -sin(θ) cos(θ)sin(ψ) cos(θ)cos(ϕ)])
-    # return [cos(ψ)cos(θ) cos(ψ)sin(θ)sin(ϕ)-sin(ψ)cos(ϕ) cos(ψ)sin(θ)cos(ϕ)+sin(ψ)sin(ϕ);
-    #         sin(ψ)cos(θ) sin(ψ)sin(θ)sin(ϕ)+cos(ψ)cos(ϕ) sin(ψ)sin(θ)cos(ϕ)-cos(ψ)cos(ϕ);
-    #         -sin(θ) cos(θ)sin(ψ) cos(θ)cos(ϕ)]
+function huber_cost(x_ref, x, α, nx)
+    abs_diff = abs.(x - x_ref)
+    # J = 0.0
+    if sum(abs_diff) < α
+        # quadratic
+        return 0.5 * sum(abs_diff)^2 
+    else
+        # linear 
+        return α * sum(abs_diff) - 0.5 * α^2
+    end
+    # println(typeof(abs_diff))
+    # mask = abs_diff .> α
+    # println(mask)
+    # huber = abs_diff .* mask
+    # huber = sum(abs_diff[mask]) 
+    # println(typeof(huber))
+    # quadratic = abs_diff .* .!mask 
+    # quadratic = sum(abs_diff .* .!mask)
+    # J = 0.0
+    # # pritln("hello")
+    # J += 0.5 * quadratic^2
+    # J += 0.5 * transpose(quadratic) * Diagonal(ones(nx)) * (quadratic)
+    # J += 0.5 * transpose(abs_diff) * Diagonal(ones(nx)) * (abs_diff)
+    # J += transpose(huber) * ones(nx)* α - 0.5 * α^2
+    # return J 
 end
-
-# q = Vector{Float64}([0,0,0.3, 0.0, 0.0, 0.0, 0.19, -0.12, 0.00])
-# pos = q[1:3]
-# rot = q[4:6]
-# f1 = q[7:9]
-
-
-# trans = Translation(-q[1], -q[2], -q[3])
-
-# rot_xyz = LinearMap(RotZYX(q[4], q[5], q[6]))
-
-# composed1 = compose(rot_xyz, trans)
-# f_pos = composed1(f1)
-
-# rot_2 = [π/2, 0, 0]
-# f2 = [-0.12, 0.17, 0]
-
-# R_forward = LinearMap(RotXYZ(roll=0, pitch=0, yaw=-pi/2))
-
-# trans_forward = Translation(0, 0, -0.3)
-
-# trans_forward(R_forward(f2))
-
-# R_inv = LinearMap(RotXYZ(roll=0, pitch=0, yaw=pi/2))
-# trans_inv = Translation(0, 0, 0.3)
-
-# composed = compose(R_inv, trans_inv)
-# inv(composed)(f2)
-
-
 

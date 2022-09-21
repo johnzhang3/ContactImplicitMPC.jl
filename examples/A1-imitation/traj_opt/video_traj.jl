@@ -75,10 +75,12 @@ qT[18] = 0.0;
 
 pushfirst!(q_ref, q1);
 push!(q_ref, qT);
+T = T+ 2
 
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
 model.μ_world = 1
+# model.mass_body = 1
 env = s.env;
 
 nx = 2 * model.nq;

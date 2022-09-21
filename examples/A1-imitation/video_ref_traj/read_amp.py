@@ -30,7 +30,7 @@ def convert_video_traj(path, outdir, name):
             orn_euler = transformations.euler_from_quaternion(msm['orn'], axes='rzyx')
 
             frame = np.concatenate((msm['pos'], orn_euler, msm['kp']), 0)
-            
+            # frame = np.concatenate((msm['pos'], msm['orn'], msm['kp']), 0)
             Frames.append(list(frame))
         out_dict['Frames'] = Frames
     save_path = os.path.join(outdir, f"{name}.json")
@@ -44,8 +44,19 @@ def plot_traj(outdir, num):
         cent_traj_dict = json.load(f)
     cent_traj = cent_traj_dict["Frames"]
     cent_traj = np.array(cent_traj)
-    fig, axs = plt.subplots()
+    # quaternions
+    # fig, axs = plt.subplots()
+    # axs.plot(cent_traj[:, 3], label = "q 1")
+    # axs.plot(cent_traj[:, 4], label = "q 2")
+    # axs.plot(cent_traj[:, 5], label = "q 3")
+    # axs.plot(cent_traj[:, 6], label = "q 4")
+    # axs.set_title('orientation')
+    # axs.legend()
+    # plt.savefig("quaternion.png")
+    # plt.show()
+    
     # foot height
+    fig, axs = plt.subplots()
     axs.plot(cent_traj[:, 8], label = "foot 1")
     axs.plot(cent_traj[:, 11], label = "foot 2")
     axs.plot(cent_traj[:, 14], label = "foot 3")
@@ -54,13 +65,24 @@ def plot_traj(outdir, num):
     axs.legend()
     plt.show()
 
-if __name__ == "__main__":
-    nums = [1005, 1013]
-    # nums = [1013]
+def convert_dog():
+    # nums = [1005, 1013]
+    nums = [1013]
     for num in nums:
         path = os.path.join(os.getcwd(), "examples/A1-imitation/video_ref_traj", "trajs_txt", f"amp-shiba-haru-{num}.txt")
         outdir = os.path.join(os.getcwd(), "examples/A1-imitation/video_ref_traj", "trajs_json")
 
         convert_video_traj(path, outdir, num)
-        # plot_traj(outdir, num)
+        plot_traj(outdir, num)
+
+def convert_cat():
+    num= 00
+    path = os.path.join(os.getcwd(), "examples/A1-imitation/video_ref_traj", "trajs_txt", f"amp-cat-pikachiu00.txt")
+    outdir = os.path.join(os.getcwd(), "examples/A1-imitation/video_ref_traj", "trajs_json")
+    convert_video_traj(path, outdir, "cat00")
+    plot_traj(outdir, "cat00")
+
+if __name__ == "__main__":
+    convert_dog()
+    # convert_cat()
 

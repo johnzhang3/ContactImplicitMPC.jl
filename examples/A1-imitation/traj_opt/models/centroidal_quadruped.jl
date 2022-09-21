@@ -160,6 +160,30 @@ function contact_constraints_equality(model, env, h, x, u, w)
     ]
 end
 
+function no_sliding_equality(model, env, h, x, u, w)
+    nq = model.nq
+    nu = model.nu 
+
+    q2 = x[1:nq] 
+    q3 = x[nq .+ (1:nq)] 
+
+    γ = u[nu .+ (1:4)] 
+    β = u[nu + 4 .+ (1:16)] 
+    ψ = u[nu + 4 + 16 .+ (1:4)] 
+    η = u[nu + 4 + 16 + 4 .+ (1:16)] 
+    sα = u[nu + 4 + 16 + 4 + 16 .+ (1:1)]
+   
+    # sα⁻ = x[nx + nu + 4 + 16 + 4 + 16 .+ (1:1)]
+
+    E = [1.0 0.0 -1.0 0.0; 
+         0.0 1.0 0.0 -1.0]
+    v = (q3 - q2) ./ h[1]
+    vT = vcat([E' * v[6 + (i-1) * 3 .+ (1:2)] for i = 1:4]...)
+    [
+     vT;
+    ]
+end
+
 function feet_position_inequality(model, env, h, x, u, w)
     nq = model.nq
     nu = model.nu 

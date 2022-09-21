@@ -52,7 +52,7 @@ qT[15] = 0.0;
 
 pushfirst!(q_ref, q1);
 push!(q_ref, qT);
-
+T += 2
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
 env = s.env;
