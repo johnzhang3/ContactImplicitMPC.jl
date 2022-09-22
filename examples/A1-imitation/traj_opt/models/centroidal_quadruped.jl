@@ -41,19 +41,26 @@ end
 
 function centroidal_quadruped_dyn1(model, env, h, y, x, u, w)
     nx = 2 * model.nq
+    nu = size(u)[1]
+    # println(size(u))
     [
      centroidal_quadruped_dyn(model, env, h, y, x, u, w);
-     y[nx .+ (1:53)] - u;
-     y[nx + 53 .+ (1:nx)] - x[1:nx];
+    #  y[nx .+ (1:53)] - u;
+    #  y[nx + 53 .+ (1:nx)] - x[1:nx];
+     y[nx .+ (1:nu)] - u;
+     y[nx + nu .+ (1:nx)] - x[1:nx];
     ]
 end
 
 function centroidal_quadruped_dynt(model, env, h, y, x, u, w)
     nx = 2 * model.nq
+    nu = size(u)[1]
     [
      centroidal_quadruped_dyn(model, env, h, y, x, u, w);
-     y[nx .+ (1:53)] - u;
-     y[nx + 53 .+ (1:nx)] - x[nx + 53 .+ (1:nx)];
+    #  y[nx .+ (1:53)] - u;
+    #  y[nx + 53 .+ (1:nx)] - x[nx + 53 .+ (1:nx)];
+     y[nx .+ (1:nu)] - u;
+     y[nx + nu .+ (1:nx)] - x[1:nx];
     ]
 end
 
