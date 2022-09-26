@@ -18,28 +18,30 @@ config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_o
 q_ref, h, T = convert_q_from_json(ref_path, true);
 q_ref = q_ref[140:190]
 T=50
-
-function adjust_ref!(q_ref, T)
-    q1 = deepcopy(q_ref[1]);
-    q1[9] = 0.0;
-    q1[12] = 0.0;
-    q1[15] = 0.0;
-    q1[18] = 0.0;
-    qT = deepcopy(q_ref[end]);
-    qT[9] = 0.0;
-    qT[12] = 0.0;
-    qT[15] = 0.0;
-    qT[18] = 0.0;
-
-    pushfirst!(q_ref, q1);
-    push!(q_ref, qT);
-    T = T+ 2
+q1 = deepcopy(q_ref[1]);
+q1[9] = 0.0;
+q1[12] = 0.0;
+q1[15] = 0.0;
+q1[18] = 0.0;
+qT = deepcopy(q_ref[end]);
+qT[9] = 0.0;
+qT[12] = 0.0;
+qT[15] = 0.0;
+qT[18] = 0.0;
+q_ref[1] = q1 
+q_ref[end] = qT
+# pushfirst!(q_ref, q1);
+# push!(q_ref, qT);
+# T = T+ 2
+function adjust_ref!(q_ref)
+    
+    
     # rotate and offset reference trajectory
     rot = LinearMap(RotZ(π/2))
     for i = 1:size(q_ref)[1]
         # body 
         q_ref[i][1:3] = rot(q_ref[i][1:3])
-        q_ref[i][1] = q_ref[i][1] - 0.2
+        q_ref[i][1] = q_ref[i][1] - 0.25
         q_ref[i][2] = q_ref[i][2] + 0.05
         q_ref[i][3] = q_ref[i][3] * 0.7
         q_ref[i][4] = q_ref[i][4] + π/2
@@ -55,10 +57,10 @@ function adjust_ref!(q_ref, T)
         q_ref[i][17] = q_ref[i][17] - 0.15
         
         # feet x scaling 
-        q_ref[i][7] = q_ref[i][7]*0.6
-        q_ref[i][10] = q_ref[i][10]*0.6
-        q_ref[i][13] = q_ref[i][13]*0.6
-        q_ref[i][16] = q_ref[i][16]*0.6
+        q_ref[i][7] = q_ref[i][7]*0.5
+        q_ref[i][10] = q_ref[i][10]*0.7
+        q_ref[i][13] = q_ref[i][13]*0.7
+        q_ref[i][16] = q_ref[i][16]*0.7
 
         # feet height 
         q_ref[i][9] = q_ref[i][9] * 0.7
@@ -70,10 +72,6 @@ end
 
 adjust_ref!(q_ref)
 plt_ref_traj(q_ref, run_path, gait)
-# ## visualize
-vis = Visualizer();
-render(vis);
-visualize!(vis, model, q_ref);
 
 weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
 
@@ -84,13 +82,20 @@ weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat");
 model = s.model;
 model.μ_world = 1
-# model.mass_body = 1
+# model.mass_body = 10
 env = s.env;
+
+# ## visualize
+vis = Visualizer();
+render(vis);
+visualize!(vis, model, q_ref);
+
 
 nx = 2 * model.nq;
 nc = 4; #model.nc
 nu = model.nu + nc + 4 * nc + nc + 4 * nc + 1;
 nθ = 53;
+
 
 # ## model
 d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(model, env, [h], y, x, u, w), nx + nθ + nx, nx, nu);

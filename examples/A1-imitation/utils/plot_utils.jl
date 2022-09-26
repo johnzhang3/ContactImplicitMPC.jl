@@ -61,6 +61,15 @@ function plt_ref_traj(q, dir, gait)
     fig_file_path = joinpath(dir, "ref_$(gait)euler_angle.png")
     savefig(fig_file_path)
 
+    # support polygon
+    plot(q_new[:, 1], q_new[:, 2], label = "body", title = "$(gait) x", lw=4)
+    plot!(q_new[:, 7], q_new[:, 8], label = "foot 1", lw=4)
+    plot!(q_new[:, 10], q_new[:, 11], label = "foot 2", lw=4)
+    plot!(q_new[:, 13], q_new[:, 14], label = "foot 3", lw=4)
+    plot!(q_new[:, 16], q_new[:, 17], label = "foot 4", lw=4)
+
+    fig_file_path = joinpath(dir, "ref_$(gait)_support_polygon.png")
+    savefig(fig_file_path)
 end
 
 function plt_opt_results(gait, tol, path)
@@ -105,6 +114,16 @@ function plt_opt_results(gait, tol, path)
     plot!(q_opt[:, 17], label = "foot 4", lw=4)
 
     fig_file_path = joinpath(path, "opt_$(gait)_y.png")
+    savefig(fig_file_path)
+
+    # support polygon
+    plot(q_opt[1:end-1, 1], q_opt[1:end-1, 2], label = "body", title = "$(gait) x", lw=4)
+    plot!(q_opt[1:end-1, 7], q_opt[1:end-1, 8], label = "foot 1", lw=4)
+    plot!(q_opt[1:end-1, 10], q_opt[1:end-1, 11], label = "foot 2", lw=4)
+    plot!(q_opt[1:end-1, 13], q_opt[1:end-1, 14], label = "foot 3", lw=4)
+    plot!(q_opt[1:end-1, 16], q_opt[1:end-1, 17], label = "foot 4", lw=4)
+
+    fig_file_path = joinpath(path, "opt_$(gait)_support_polygon.png")
     savefig(fig_file_path)
 
     # controls 
