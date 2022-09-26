@@ -18,21 +18,7 @@ config_path = joinpath(@__DIR__, "..", "..", "..", "examples/A1-imitation/traj_o
 q_ref, h, T = convert_q_from_json(ref_path, true);
 q_ref = q_ref[140:190]
 T=50
-q1 = deepcopy(q_ref[1]);
-q1[9] = 0.0;
-q1[12] = 0.0;
-q1[15] = 0.0;
-q1[18] = 0.0;
-qT = deepcopy(q_ref[end]);
-qT[9] = 0.0;
-qT[12] = 0.0;
-qT[15] = 0.0;
-qT[18] = 0.0;
-q_ref[1] = q1 
-q_ref[end] = qT
-# pushfirst!(q_ref, q1);
-# push!(q_ref, qT);
-# T = T+ 2
+
 function adjust_ref!(q_ref)
     
     
@@ -41,10 +27,16 @@ function adjust_ref!(q_ref)
     for i = 1:size(q_ref)[1]
         # body 
         q_ref[i][1:3] = rot(q_ref[i][1:3])
-        q_ref[i][1] = q_ref[i][1] - 0.25
-        q_ref[i][2] = q_ref[i][2] + 0.05
-        q_ref[i][3] = q_ref[i][3] * 0.7
-        q_ref[i][4] = q_ref[i][4] + π/2
+        # q_ref[i][1] = q_ref[i][1] - 0.25
+        # q_ref[i][2] = q_ref[i][2] + 0.05
+        # q_ref[i][3] = q_ref[i][3] * 0.7
+        q_ref[i][1] = 0
+        q_ref[i][2] = 0
+        q_ref[i][3] = 0.32
+        # q_ref[i][4] = q_ref[i][4] + π/2
+        q_ref[i][4] = 0
+        q_ref[i][5] = 0
+        q_ref[i][6] = 0
         # feet 
         q_ref[i][7:9] = rot(q_ref[i][7:9])
         
@@ -71,6 +63,22 @@ function adjust_ref!(q_ref)
 end
 
 adjust_ref!(q_ref)
+q1 = deepcopy(q_ref[1]);
+q1[9] = 0.0;
+q1[12] = 0.0;
+q1[15] = 0.0;
+q1[18] = 0.0;
+qT = deepcopy(q_ref[1]);
+qT[9] = 0.0;
+qT[12] = 0.0;
+qT[15] = 0.0;
+qT[18] = 0.0;
+q_ref[1] = q1 
+q_ref[end] = qT
+
+pushfirst!(q_ref, q1);
+push!(q_ref, qT);
+T = T+ 2
 plt_ref_traj(q_ref, run_path, gait)
 
 weights_dict = YAML.load_file(config_path; dicttype= Dict{String, Float64});
@@ -269,3 +277,20 @@ YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict);
 vis = Visualizer();
 render(vis);
 visualize!(vis, model, [x_sol[1][1:nq], [x[nq .+ (1:nq)] for x in x_sol]...], Δt=h);
+
+
+DTO.initialize_states!(p, x_sol);
+DTO.initialize_controls!(p, u_sol);
+
+## solve
+@time DTO.solve!(p);
+
+# ## solution
+x_sol, u_sol = DTO.get_trajectory(p);
+@show max_slack = maximum([u[end] for u in u_sol[1:end-1]]);
+@show tot_slack = sum([u[end] for u in u_sol[1:end-1]]);
+
+save_to_jld2(model, x_sol, u_sol, gait, tolerance,  run_path);
+save_IPOPT_output(run_path)
+plt_opt_results(gait, tolerance, run_path)
+YAML.write_file(joinpath(run_path, "config.yaml"), weights_dict);
