@@ -218,10 +218,10 @@ N_last = 20
 qm = [[x_sol[1][model.nq .+ (1:model.nq)] for t = 1:N_first]..., x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]..., [x_sol[end][model.nq .+ (1:model.nq)] for t = 1:N_last]...]
 vm = [[(x_sol[1][model.nq .+ (1:model.nq)] - x_sol[1][0 .+ (1:model.nq)]) ./ h for t = 1:N_first]..., [(x[model.nq .+ (1:model.nq)] - x[0 .+ (1:model.nq)]) ./ h for x in x_sol]..., [(x_sol[end][model.nq .+ (1:model.nq)] - x_sol[end][0 .+ (1:model.nq)]) ./ h for t = 1:N_last]...]
 um = [[u_sol[1][1:model.nu] for t = 1:N_first]..., [u[1:model.nu] for u in u_sol]..., [u_sol[end][1:model.nu] for t = 1:N_last]...]
-γm = [[u_sol[1][model.nu .+ (1:5)] for t = 1:N_first]..., [u[model.nu .+ (1:5)] for u in u_sol]..., [u_sol[end][model.nu .+ (1:5)] for t = 1:N_last]...]
-bm = [[u_sol[1][model.nu + 5 .+ (1:20)] for t = 1:N_first]..., [u[model.nu + 5 .+ (1:20)] for u in u_sol]..., [u_sol[end][model.nu + 5 .+ (1:20)] for t = 1:N_last]...]
-ψm = [[u_sol[1][model.nu + 5 + 20 .+ (1:5)] for t = 1:N_first]..., [u[model.nu + 5 + 20 .+ (1:5)] for u in u_sol]..., [u_sol[end][model.nu + 5 + 20 .+ (1:5)] for t = 1:N_last]...]
-ηm = [[u_sol[1][model.nu + 5 + 20 + 5 .+ (1:20)] for t = 1:N_first]..., [u[model.nu + 5 + 20 + 5 .+ (1:20)] for u in u_sol]..., [u_sol[end][model.nu + 5 + 20 + 5 .+ (1:20)] for t = 1:N_last]...]
+γm = [[u_sol[1][model.nu .+ (1:model.nc)] for t = 1:N_first]..., [u[model.nu .+ (1:model.nc)] for u in u_sol]..., [u_sol[end][model.nu .+ (1:model.nc)] for t = 1:N_last]...]
+bm = [[u_sol[1][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u[model.nu + model.nc .+ (1:model.nc*4)] for u in u_sol]..., [u_sol[end][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_last]...]
+ψm = [[u_sol[1][model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for t = 1:N_first]..., [u[model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for u in u_sol]..., [u_sol[end][model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for t = 1:N_last]...]
+ηm = [[u_sol[1][model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u[model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for u in u_sol]..., [u_sol[end][model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for t = 1:N_last]...]
 μm = model.μ_world
 hm = h
 
