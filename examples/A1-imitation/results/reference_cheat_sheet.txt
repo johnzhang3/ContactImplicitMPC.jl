@@ -12,4 +12,7 @@ run1: 20hz
 run6: 33hz (to be tested)
 run7: 20hz, wider stance traj (to be tested)
 
-reaching: run37, works in gazebo 
+reaching: 
+run37: works in gazebo 
+
+run 7: moved CoM back into the support polygon. works on hardware 
