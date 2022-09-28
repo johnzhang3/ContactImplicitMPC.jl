@@ -24,8 +24,8 @@ vis = LciMPC.Visualizer()
 LciMPC.render(vis)
 
 # Set horizon variables
-T = 120
-Tm = 30 #TODO: What is this?
+Tm = 60 #TODO: What is this?
+T = Tm*2
 h = 0.05
 
 # Get simulation and model
@@ -63,12 +63,36 @@ function nominal_configuration(model::CentroidalQuadrupedWall)
     ]
 end
 
+function middle1_configuration(model::CentroidalQuadrupedWall)
+    x_shift = -0.05
+    y_shift = -0.0
+    return [
+        0.0 + x_shift; y_shift; body_height; # Body XYZ
+        0.0; 0.0; 0.0; # Body orientation (MRP)
+        foot_x ; foot_y; 0.0; # Left front XYZ
+        foot_x ;-foot_y; 0.0; # Right front XYZ
+       -foot_x ; foot_y; 0.0; # Left back XYZ
+       -foot_x ;-foot_y; 0.0; # Right back XYZ
+    ]
+end
+
+function sinusoidal_interpolation(q0, q1, N)
+    Λ = (sin.(range(-π/2, π/2, length=N)) .+ 1) ./ 2
+    Q = [q0*(1-λ) + q1*λ for λ in Λ]
+    return Q
+end
+
 q1 = nominal_configuration(model)
 qT = nominal_configuration(model)
 visualize!(vis, model, [q1], Δt = h)
+qM1 = middle1_configuration(model)
+visualize!(vis, model, [qM1], Δt = h)
 
 # Create reference trajectory
-q_ref = [q1 for i in 1:T + 1];
+q_ref = [sinusoidal_interpolation(q1, qM1, Tm)...,
+         sinusoidal_interpolation(qM1, qT, Tm)...];
+q_ref = [q1, q_ref...]
+visualize!(vis, model, q_ref, Δt = h)
 
 # Create reference state for DTO
 x_ref = [[q_ref[t]; q_ref[t+1]] for t = 1:T]
@@ -193,8 +217,8 @@ direct_solver = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         tol=1.0e-3,
         constr_viol_tol=1.0e-3,
-        max_iter=1000,
-        max_cpu_time = 2000.0
+        max_iter=3000,
+        max_cpu_time = 6000.0
         ))
 
 # Initialize problem
@@ -225,6 +249,8 @@ bm = [[u_sol[1][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u
 μm = model.μ_world
 hm = h
 
+plot([qm[i][1] for i in 1:size(qm)[1]])
+
 # Save reference
 using JLD2
-@save joinpath(@__DIR__, "stand_wall_two_steps_v0.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "stand_wall_two_steps_v1.jld2") qm um γm bm ψm ηm μm hm
