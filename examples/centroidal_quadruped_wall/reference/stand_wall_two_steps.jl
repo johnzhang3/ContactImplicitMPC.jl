@@ -24,7 +24,7 @@ vis = LciMPC.Visualizer()
 LciMPC.render(vis)
 
 # Set horizon variables
-Tm = 60 #TODO: What is this?
+Tm = 10 #TODO: What is this?
 T = Tm*2
 h = 0.05
 
@@ -93,7 +93,7 @@ q_ref = [sinusoidal_interpolation(q1, qM1, Tm)...,
          sinusoidal_interpolation(qM1, qT, Tm)...];
 q_ref = [q1, q_ref...]
 visualize!(vis, model, q_ref, Δt = h)
-
+vis
 # Create reference state for DTO
 x_ref = [[q_ref[t]; q_ref[t+1]] for t = 1:T]
 
@@ -131,10 +131,10 @@ for t = 1:T
             w = (u - u_prev) ./ h
             J += 0.5 * 1.0 * dot(w[1:end-1], w[1:end-1])
 
-            J += 0.5 * transpose(x[1:6] - x_ref[t][1:6]) * Diagonal(1000.0 * ones(6)) * (x[1:6] - x_ref[t][1:6])
-            J += 0.5 * transpose(x[6 .+ 1:12] - x_ref[t][6 .+ 1:12]) * Diagonal(100000.0 * ones(6)) * (x[6 .+ 1:12] - x_ref[t][6 .+ 1:12])
+            J += 0.5 * transpose(x[1:6] - x_ref[t][1:6]) * Diagonal(100000.0 * ones(6)) * (x[1:6] - x_ref[t][1:6])
+            J += 0.5 * transpose(x[6 .+ 1:12] - x_ref[t][6 .+ 1:12]) * Diagonal(1000.0 * ones(6)) * (x[6 .+ 1:12] - x_ref[t][6 .+ 1:12])
 
-            J += 0.5 * transpose(u) * Diagonal([1.0 * ones(model.nu); zeros(nu - model.nu)]) * u
+            J += 0.5 * transpose(u) * Diagonal([1.0e-3 * ones(model.nu); zeros(nu - model.nu)]) * u
             J += 10000.0 * u[end] # slack
             J += 0.5 * transpose(u[model.nu + 8 .+ (1:40)]) * Diagonal(1.0e-3 * ones(40)) * u[model.nu + 8 .+ (1:40)]
 
@@ -217,8 +217,8 @@ direct_solver = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         tol=1.0e-3,
         constr_viol_tol=1.0e-3,
-        max_iter=3000,
-        max_cpu_time = 6000.0
+        max_iter=100000,
+        max_cpu_time = 60000.0
         ))
 
 # Initialize problem
@@ -226,6 +226,9 @@ x_interpolation = copy(x_ref)
 u_guess = [1.0e-4 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(direct_solver, x_interpolation)
 DTO.initialize_controls!(direct_solver, u_guess)
+
+DTO.initialize_states!(direct_solver, x_sol)
+DTO.initialize_controls!(direct_solver, u_sol)
 
 # Solve the problem
 @time DTO.solve!(direct_solver)
@@ -249,7 +252,7 @@ bm = [[u_sol[1][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u
 μm = model.μ_world
 hm = h
 
-plot([qm[i][1] for i in 1:size(qm)[1]])
+plot([qm[i][3] for i in 1:size(qm)[1]])
 
 # Save reference
 using JLD2
