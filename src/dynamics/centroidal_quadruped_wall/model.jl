@@ -90,13 +90,44 @@ function ϕ_func(model::CentroidalQuadrupedWall, env::Environment, q)
     position_foot2 = q[9 .+ (1:3)]
     position_foot3 = q[12 .+ (1:3)]
 	position_foot4 = q[15 .+ (1:3)]
-
-    x_wall = 0.35
-    
+      
 	return [
         position_foot1[3]; position_foot2[3]; position_foot3[3]; position_foot4[3];
         x_wall - position_foot1[1]; x_wall - position_foot2[1]; x_wall - position_foot3[1]; x_wall - position_foot4[1];
     ]
+end
+
+function ϕ_foot_func(foot_pos)
+    # The wall is modelled as 2 flat planes and a curve.
+    # The two flat regions are at z = 0 and x = x_wall
+    # The curve is a circle of radius R and center (x_wall - R, 0, R)
+    # so that its lower right 90 deg corner connects the two walls
+    # The walls and curve extend infinitely in +/- y directions
+    # The robot is to the left (x < x_wall) of the vertical wall
+
+    x_wall = 0.35
+    R = 0.7
+
+    foot_x = foot_pos[1];
+    foot_z = foot_pos[3];
+    curve_center_x = x_wall - R;
+    curve_center_z = R;
+
+    ϕ = 0
+
+    if foot_z < R && foot_x > x_wall - R # In the region where the curve is closest
+        # Shift coords so (0, 0) is center of circle curve
+        foot_x = foot_x - curve_center_x;
+        foot_z = foot_z - curve_center_z;
+
+        # Distance is radius difference
+        r = sqrt(foot_x^2 + foot_z^2);
+        ϕ = R - r;
+    elseif foot_z < -foot_x + x_wall # Closest to floor
+        ϕ = foot_z;
+    else # Closest to vertical wall
+        ϕ = x_wall - foot_x;
+    end
 end
 
 function B_func(model::CentroidalQuadrupedWall, q)
