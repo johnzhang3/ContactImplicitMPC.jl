@@ -23,12 +23,13 @@ function centroidal_quadruped_dyn(model::CentroidalQuadrupedWall, env, h, y, x, 
     E = [1.0 0.0 -1.0 0.0; 
          0.0 1.0 0.0 -1.0] # friction mapping 
     J = J_func(model, env, q2⁺)
-    λ = transpose(J) * [
-                        [E * β[0  .+ (1:4)]; γ[1]];
-                        [E * β[4  .+ (1:4)]; γ[2]];
-                        [E * β[8  .+ (1:4)]; γ[3]];
-                        [E * β[12 .+ (1:4)]; γ[4]]
-                       ]
+    # λ = transpose(J) * [
+    #                     [E * β[0  .+ (1:4)]; γ[1]];
+    #                     [E * β[4  .+ (1:4)]; γ[2]];
+    #                     [E * β[8  .+ (1:4)]; γ[3]];
+    #                     [E * β[12 .+ (1:4)]; γ[4]]
+    #                    ]
+    λ = transpose(J) * contact_forces(model, env, γ, β, q3⁺, 0)
     [
      q2⁺ - q2⁻;
      dynamics(model, h, q1⁻, q2⁺, u_control, zeros(model.nw), λ, q3⁺)
@@ -166,12 +167,13 @@ function contact_constraints_equality(model::CentroidalQuadrupedWall, env, h, x,
     η = u[nu + nc + 4*nc + nc .+ (1:4*nc)] 
     sα = u[nu + nc + 4*nc + nc + 4*nc .+ (1:1)]
    
-    E = [1.0 0.0 -1.0 0.0; 
-         0.0 1.0 0.0 -1.0]
-    v = (q3 - q2) ./ h[1]
-    vT = [
-            vcat([transpose(E) * v[6 + (i-1) * 3 .+ (1:2)] for i = 1:4]...);
-    ]
+    # E = [1.0 0.0 -1.0 0.0; 
+    #      0.0 1.0 0.0 -1.0]
+    # v = (q3 - q2) ./ h[1]
+    # vT = [
+    #         vcat([transpose(E) * v[6 + (i-1) * 3 .+ (1:2)] for i = 1:4]...);
+    # ]
+    vT = velocity_stack(model, env, q3, q2, 0, h)
     
     ψ_stack = vcat([ψi * ones(4) for ψi in ψ]...)
     

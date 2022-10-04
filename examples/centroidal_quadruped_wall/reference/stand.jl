@@ -194,7 +194,7 @@ direct_solver = DTO.Solver(dyn, obj, cons, bnds,
         constr_viol_tol=1.0e-3,
         max_iter=100000,
         max_cpu_time = 60000.0
-        ))
+        ));
 
 # ## initialize
 x_interpolation = [x1, [[x1; zeros(nθ); zeros(nx)] for t = 2:T]...]
