@@ -3,7 +3,7 @@
 # This can only run in VSCode, with the ContactImplicitMPC environment
 # in Julia AND the module set (similar to a namespace)
 #
-# Used to test the centroidal_quadruped_wall model for a very simple case
+# Used to test the centroidal_quadruped_wall model for a dynamic case
 
 using DirectTrajectoryOptimization 
 const DTO = DirectTrajectoryOptimization
@@ -27,6 +27,7 @@ LciMPC.open(vis)
 
 # ## horizon
 T = 20
+Tm = 10
 h = 0.05
 
 # Get simulation and model
@@ -65,12 +66,12 @@ function nominal_configuration(model::CentroidalQuadrupedWall)
 end
 
 function middle1_configuration(model::CentroidalQuadrupedWall)
-    x_shift = -0.05
+    x_shift = -0.0
     y_shift = -0.0
     return [
         0.0 + x_shift; y_shift; body_height; # Body XYZ
         0.0; 0.0; 0.0; # Body orientation (MRP)
-        foot_x ; foot_y; 0.0; # Left front XYZ
+        foot_x ; foot_y; 0.2; # Left front XYZ
         foot_x ;-foot_y; 0.0; # Right front XYZ
        -foot_x ; foot_y; 0.0; # Left back XYZ
        -foot_x ;-foot_y; 0.0; # Right back XYZ
@@ -84,52 +85,59 @@ function sinusoidal_interpolation(q0, q1, N)
 end
 
 q1 = nominal_configuration(model)
-qM = nominal_configuration(model)
 qT = nominal_configuration(model)
-q_ref = nominal_configuration(model)
+visualize!(vis, model, [q1], Δt = h)
+qM1 = middle1_configuration(model)
+visualize!(vis, model, [qM1], Δt = h)
 
-x1 = [q1; q1]
-xM = [qM; qM]
-xT = [qT; qT]
-x_ref = [q_ref; q_ref]
+# Create reference trajectory
+q_ref = [sinusoidal_interpolation(q1, qM1, Tm)...,
+         sinusoidal_interpolation(qM1, qT, Tm)...];
+q_ref = [q1, q_ref...]
+visualize!(vis, model, q_ref, Δt = h)
+vis
+# Create reference state for DTO
+x_ref = [[q_ref[t]; q_ref[t+1]] for t = 1:T]
 
-
-# ## objective
-function obj1(x, u, w)
+# Create array of objectives/cost
+obj = DTO.Cost{Float64}[]
+for t = 1:T
+    if t == T
+        push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
-	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
-	J += 0.5 * transpose(u) * Diagonal([ones(model.nu); 100.0 *ones(nu - model.nu)]) * u
-    J += 1000.0 * u[end] # slack
-    J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
+            J += 100 * transpose(x[1:nx] - x_ref[T]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[T])
+            
+            return J
+        end, nx + nθ + nx, 0))
+    elseif t == 1
+        push!(obj, DTO.Cost((x, u, w) -> begin
+            J = 0.0
+            v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
+            J += 0.5 * 1.0e-3 * dot(v, v)
+            J += 100 * transpose(x[1:nx] - x_ref[1]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[1])
+	        J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
+            J += 1000.0 * u[end] # slack
+            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
 
             return J
-end
-
-function objt(x, u, w)
+        end, nx, nu))
+    else
+        push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
-
-    u_prev = x[nx .+ (1:53)]
-            w = (u - u_prev) ./ h
-    J += 0.5 * 10.0 * dot(w[1:end-1], w[1:end-1])
-
-	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
-	J += 0.5 * transpose(u) * Diagonal([ones(model.nu); 100.0 *ones(nu - model.nu)]) * u
-    J += 1000.0 * u[end] # slack
-    J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
-
-	return J
-end
-
-function objT(x, u, w)
-	J = 0.0
-	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
+            v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
+            J += 0.5 * 1.0e-1 * dot(v, v)
+            u_previous = x[nx .+ (1:53)]
+            u_control = u
+            w = (u_control - u_previous) ./ h
+            J += 0.5 * 1.0e-3 * dot(w, w)
+            J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
+            J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
+            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
+            J += 1000.0 * u[end] # slack
             return J
+        end, nx + nθ + nx, nu))
+    end
 end
-
-c1 = DTO.Cost(obj1, nx, nu)
-ct = DTO.Cost(objt, nx + nθ + nx, nu)
-cT = DTO.Cost(objT, nx + nθ + nx, 0)
-obj = [c1, [ct for t = 2:T-1]..., cT];
 
 # ## constraints
 ql = q1
@@ -142,65 +150,78 @@ xlt = [-Inf * ones(nx); -Inf * ones(nθ); -Inf * ones(nx)]
 xut = [Inf * ones(nx); Inf * ones(nθ); Inf * ones(nx)]
 
 # final condition
-xlT = [q1; q1; -Inf * ones(nθ); -Inf * ones(nx)]
-xuT = [q1; q1; Inf * ones(nθ); Inf * ones(nx)]
+xlT = [-Inf * ones(nq); qT; -Inf * ones(nθ); -Inf * ones(nx)]
+xuT = [Inf * ones(nq); qT; Inf * ones(nθ); Inf * ones(nx)]
 
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
-bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
-bndt = DTO.Bound(nx + nθ + nx, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
-bndT = DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT)
-bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
-
-function constraints_1(x, u, w)
-    [
-     # equality (16)
-     contact_constraints_equality(model, env, h, x, u, w);
-     # inequality (28)
-     contact_constraints_inequality_1(model, env, h, x, u, w);
-     x[6 .+ (1:12)] - q1[6 .+ (1:12)];
-     x[18 + 6 .+ (1:12)] - q1[6 .+ (1:12)];
-    ]
+bnds = DTO.Bound{Float64}[]
+push!(bnds, DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu))
+for t = 2:T-1
+    push!(bnds, DTO.Bound(nx + nθ + nx, nu,
+        state_lower=[-Inf * ones(nq); -Inf * ones(nq); -Inf * ones(nθ); -Inf * ones(nx)],
+        state_upper=[Inf * ones(nq); Inf * ones(nq); Inf * ones(nθ); Inf * ones(nx)],
+        action_lower=ul, action_upper=uu))
 end
+push!(bnds, DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT))
 
+
+cons = DTO.Constraint{Float64}[]
+for t = 1:T
+    if t == 1
+        function constraints_1(x, u, w)
+            [
+            # equality (16)
+            contact_constraints_equality(model, env, h, x, u, w);
+            # inequality (28)
+            contact_constraints_inequality_1(model, env, h, x, u, w);
+
+            # body/feet constraints
+            x[3] - x_ref[t][3]; ;
+            ]
+        end
+        push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28))))
+    elseif t == T
+        function constraints_T(x, u, w)
+            [
+            # inequality (8)
+            contact_constraints_inequality_T(model, env, h, x, u, w);
+
+            # body/feet constraints
+            x[3] - x_ref[t][3]; 
+            ]
+        end
+        push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8))))
+    else
 function constraints_t(x, u, w)
-    [
-     # equality (16)
-     contact_constraints_equality(model, env, h, x, u, w);
-     # inequality (32)
-     contact_constraints_inequality_t(model, env, h, x, u, w);
-     x[6 .+ (1:12)] - q1[6 .+ (1:12)];
-     x[18 + 6 .+ (1:12)] - q1[6 .+ (1:12)];
-    ]
+            [
+            # equality (16)
+            contact_constraints_equality(model, env, h, x, u, w);
+            # inequality (32)
+            contact_constraints_inequality_t(model, env, h, x, u, w);
+
+            # body/feet constraints
+            x[3] - x_ref[t][3]; 
+            ]
+        end
+        push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32))) )
+    end
 end
 
-function constraints_T(x, u, w)
-    [
-     # inequality (8)
-     contact_constraints_inequality_T(model, env, h, x, u, w);
-     x[6 .+ (1:12)] - q1[6 .+ (1:12)];
-     x[18 + 6 .+ (1:12)] - q1[6 .+ (1:12)];
-    ]
-end
-
-con1 = DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28)))
-cont = DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32)))
-conT = DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8)))
-cons = [con1, [cont for t = 2:T-1]..., conT];
-
-# Set up DTO problem
+# ## problem
+tolerance = 1.0e-3
 direct_solver = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
-        tol=1.0e-3,
-        constr_viol_tol=1.0e-3,
-        max_iter=100000,
+        tol=tolerance,
+        constr_viol_tol=tolerance,
+        max_iter=2000,
         max_cpu_time = 60000.0
         ));
 
 # ## initialize
-x_interpolation = [x1, [[x1; zeros(nθ); zeros(nx)] for t = 2:T]...]
-u_guess = [1.0e-4 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
+x_interpolation = copy(x_ref)
+u_guess = [1.0e-1 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(direct_solver, x_interpolation)
 DTO.initialize_controls!(direct_solver, u_guess)
 
