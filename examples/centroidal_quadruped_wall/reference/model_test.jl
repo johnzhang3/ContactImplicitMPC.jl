@@ -26,7 +26,7 @@ vis = LciMPC.Visualizer()
 LciMPC.open(vis)
 
 # ## horizon
-T = 20
+T = 30
 Tm = 10
 h = 0.05
 
@@ -66,12 +66,38 @@ function nominal_configuration(model::CentroidalQuadrupedWall)
 end
 
 function middle1_configuration(model::CentroidalQuadrupedWall)
-    x_shift = -0.0
+    x_shift = -0.05
     y_shift = -0.0
     return [
         0.0 + x_shift; y_shift; body_height; # Body XYZ
         0.0; 0.0; 0.0; # Body orientation (MRP)
-        foot_x ; foot_y; 0.2; # Left front XYZ
+        foot_x ; foot_y; 0.0; # Left front XYZ
+        foot_x ;-foot_y; 0.0; # Right front XYZ
+       -foot_x ; foot_y; 0.0; # Left back XYZ
+       -foot_x ;-foot_y; 0.0; # Right back XYZ
+    ]
+end
+
+function middle2_configuration(model::CentroidalQuadrupedWall)
+    x_shift = -0.05
+    y_shift = -0.0
+    return [
+        0.0 + x_shift; y_shift; body_height; # Body XYZ
+        0.0; 0.0; 0.0; # Body orientation (MRP)
+        0.3  ; foot_y; 0.2; # Left front XYZ
+        foot_x ;-foot_y; 0.0; # Right front XYZ
+       -foot_x ; foot_y; 0.0; # Left back XYZ
+       -foot_x ;-foot_y; 0.0; # Right back XYZ
+    ]
+end
+
+function middle3_configuration(model::CentroidalQuadrupedWall)
+    x_shift = -0.05
+    y_shift = -0.0
+    return [
+        0.0 + x_shift; y_shift; body_height; # Body XYZ
+        0.0; 0.0; 0.0; # Body orientation (MRP)
+        0.35  ; foot_y; 0.2; # Left front XYZ
         foot_x ;-foot_y; 0.0; # Right front XYZ
        -foot_x ; foot_y; 0.0; # Left back XYZ
        -foot_x ;-foot_y; 0.0; # Right back XYZ
@@ -85,14 +111,16 @@ function sinusoidal_interpolation(q0, q1, N)
 end
 
 q1 = nominal_configuration(model)
-qT = nominal_configuration(model)
+qT = middle3_configuration(model)
 visualize!(vis, model, [q1], Δt = h)
 qM1 = middle1_configuration(model)
+qM2 = middle2_configuration(model)
 visualize!(vis, model, [qM1], Δt = h)
 
 # Create reference trajectory
 q_ref = [sinusoidal_interpolation(q1, qM1, Tm)...,
-         sinusoidal_interpolation(qM1, qT, Tm)...];
+    sinusoidal_interpolation(qM1, qM2, Tm)...,
+    sinusoidal_interpolation(qM2, qT, Tm)...];
 q_ref = [q1, q_ref...]
 visualize!(vis, model, q_ref, Δt = h)
 vis
@@ -174,11 +202,12 @@ for t = 1:T
             [
             # equality (16)
             contact_constraints_equality(model, env, h, x, u, w);
+            
             # inequality (28)
             contact_constraints_inequality_1(model, env, h, x, u, w);
 
             # body/feet constraints
-            x[3] - x_ref[t][3]; ;
+            x[3] - x_ref[t][3]; # body height
             ]
         end
         push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28))))
@@ -189,7 +218,7 @@ for t = 1:T
             contact_constraints_inequality_T(model, env, h, x, u, w);
 
             # body/feet constraints
-            x[3] - x_ref[t][3]; 
+            x[3] - x_ref[t][3]; # body height
             ]
         end
         push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8))))
@@ -202,7 +231,7 @@ function constraints_t(x, u, w)
             contact_constraints_inequality_t(model, env, h, x, u, w);
 
             # body/feet constraints
-            x[3] - x_ref[t][3]; 
+            x[3] - x_ref[t][3]; # body height
             ]
         end
         push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32))) )
@@ -215,24 +244,28 @@ direct_solver = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         tol=tolerance,
         constr_viol_tol=tolerance,
-        max_iter=2000,
+        max_iter=20000,
         max_cpu_time = 60000.0
         ));
 
 # ## initialize
 x_interpolation = copy(x_ref)
+Random.seed!(0)
 u_guess = [1.0e-1 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(direct_solver, x_interpolation)
 DTO.initialize_controls!(direct_solver, u_guess)
+
+DTO.initialize_states!(direct_solver, x_sol)
+DTO.initialize_controls!(direct_solver, u_sol)
 
 # ## solve
 @time DTO.solve!(direct_solver)
 
 # Get solution
-x_sol, u_sol = DTO.get_trajectory(direct_solver)
+x_sol, u_sol = DTO.get_trajectory(direct_solver);
 
 # Visualize solution
-visualize!(vis, model, [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...], Δt=h)
+visualize!(vis, model, [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...], Δt=h);
 vis
 # Extract decision variables for CI-MPC
 N_first = 10
@@ -247,7 +280,7 @@ bm = [[u_sol[1][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u
 μm = model.μ_world
 hm = h
 
-plot([qm[i][3] for i in 1:size(qm)[1]])
+plot([qm[i][1] for i in 1:size(qm)[1]])
 
 # Save reference
 using JLD2

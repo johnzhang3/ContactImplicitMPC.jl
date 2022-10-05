@@ -174,7 +174,7 @@ function contact_constraints_equality(model::CentroidalQuadrupedWall, env, h, x,
     #         vcat([transpose(E) * v[6 + (i-1) * 3 .+ (1:2)] for i = 1:4]...);
     # ]
     vT = velocity_stack(model, env, q3, q2, 0, h)
-    
+
     ψ_stack = vcat([ψi * ones(4) for ψi in ψ]...)
     
     [
