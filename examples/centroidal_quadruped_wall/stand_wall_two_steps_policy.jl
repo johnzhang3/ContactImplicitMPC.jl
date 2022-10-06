@@ -14,7 +14,7 @@ include("../centroidal_quadruped/continuous_policy_v3.jl")
 s = get_simulation("centroidal_quadruped_wall", "flat_3D_lc", "flat")
 model = s.model
 env = s.env
-
+model.μ_world
 # Load reference trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
 	# joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/inplace_trot_v4.jld2"),
@@ -88,8 +88,9 @@ RoboDojo.simulate!(sim, q1_sim0, v1_sim)
 set_light!(vis)
 set_floor!(vis, grid=true)
 set_background!(vis)
+using Meshing
 anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)
-
+vis
 # # ## Timing result
 # # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
 process!(sim.stats, N_sample) # Time budget

@@ -114,7 +114,7 @@ q1 = nominal_configuration(model)
 qT = middle3_configuration(model)
 visualize!(vis, model, [q1], Δt = h)
 qM1 = middle1_configuration(model)
-qM2 = middle2_configuration(model)
+qM2 = nomina2_configuration(model)
 visualize!(vis, model, [qM1], Δt = h)
 
 # Create reference trajectory
@@ -280,7 +280,7 @@ bm = [[u_sol[1][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u
 μm = model.μ_world
 hm = h
 
-plot([qm[i][1] for i in 1:size(qm)[1]])
+plot([qm[i][3] for i in 1:size(qm)[1]])
 
 # Save reference
 using JLD2

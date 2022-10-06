@@ -222,9 +222,9 @@ function velocity_stack(model::CentroidalQuadrupedWall, env::Environment{<:World
     # Need to rotate velocity so that they align with the surface
     vT = [
         transpose(get_surface_rot_mat(model, q2[1:3])) * v[1:3];
-        transpose(get_surface_rot_mat(model, q2[4:6])) * v[1:3];
-        transpose(get_surface_rot_mat(model, q2[7:9])) * v[1:3];
-        transpose(get_surface_rot_mat(model, q2[10:12])) * v[1:3];
+        transpose(get_surface_rot_mat(model, q2[4:6])) * v[4:6];
+        transpose(get_surface_rot_mat(model, q2[7:9])) * v[7:9];
+        transpose(get_surface_rot_mat(model, q2[10:12])) * v[10:12];
     ]
     vT = [
         m * vT[1:2];
