@@ -15,10 +15,11 @@ s = get_simulation("centroidal_quadruped_wall", "flat_3D_lc", "flat")
 model = s.model
 env = s.env
 model.μ_world
+s.model.μ_world = 1
 # Load reference trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
 	# joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/inplace_trot_v4.jld2"),
-	joinpath(@__DIR__, "reference/stand_wall_two_steps_v1.jld2"),
+	joinpath(@__DIR__, "reference/stand_wall_two_steps_combined_v2.jld2"),
     load_type = :split_traj_alt))
 
 H = ref_traj.H
@@ -28,7 +29,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 5
 h_sim = h / N_sample
-H_sim = H * N_sample
+H_sim = (H) * N_sample
 κ_mpc = 2.0e-4
 
 v0 = 0.0

@@ -1,7 +1,9 @@
-# This is primarily a copy of stand_wall_two_steps.jl from 
-# examples/centroidal_quadruped/reference
+# This is primarily a copy of stand.jl from 
+# examples/A1-imitation/traj_opt/
 # This can only run in VSCode, with the ContactImplicitMPC environment
 # in Julia AND the module set (similar to a namespace)
+#
+# Used to test the centroidal_quadruped_wall model for a dynamic case
 
 using DirectTrajectoryOptimization 
 const DTO = DirectTrajectoryOptimization
@@ -13,7 +15,7 @@ const LciMPC = ContactImplicitMPC
 # centroidal_quadruped_dyn, centroidal_quadruped_dynt,
 # contact_constraints_inequality_1, contact_constraints_inequality_t,
 # contact_constraints_inequality_T, contact_constraints_equality
-include("trajopt_model_wall_4feet.jl")
+include("trajopt_model_wall.jl")
 
 # Brings in the visuals for MeshCat, including the functions:
 # build_robot!, set_robot!, visualize!
@@ -21,11 +23,11 @@ include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped_
 
 # Create and open the Visualizer.
 vis = LciMPC.Visualizer()
-LciMPC.render(vis)
+LciMPC.open(vis)
 
-# Set horizon variables
-Tm = 10 #TODO: What is this?
-T = Tm*2
+# ## horizon
+Tm = 10
+T = Tm
 h = 0.05
 
 # Get simulation and model
@@ -35,26 +37,25 @@ env = s.env
 nx = 2 * model.nq # Number of states
 nc = model.nc # Number of contacts
 nu = model.nu + nc + 4 * nc + nc + 4 * nc + 1 # Additional decision vars
-nθ = 93
+nθ = 53
 
 # Set up array of DTO dynamics structures
-d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(
-	model, env, [h], y, x, u, w), nx + nθ, nx, nu)
+d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(
+	model, env, [h], y, x, u, w), nx + nθ + nx, nx, nu)
 dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(
-	model, env, [h], y, x, u, w), nx + nθ , nx + nθ , nu)
+	model, env, [h], y, x, u, w), nx + nθ + nx, nx + nθ + nx, nu)
 dyn = [d1, [dt for t = 2:T-1]...]
 
 # Initial conditions
 body_height = 0.3
 foot_x = 0.17
-foot_y = 0.15
+foot_y = 0.1
 
 # Configurations through trajectory (will be interpolated between)
-function nominal_configuration(model::CentroidalQuadrupedWall)
+function nominal_configuration(model::CentroidalQuadrupedWall) # Standing
     x_shift = -0.0
-    y_shift = -0.0
     return [
-        0.0 + x_shift; y_shift; body_height; # Body XYZ
+        0.0 + x_shift; 0.0; body_height; # Body XYZ
         0.0; 0.0; 0.0; # Body orientation (MRP)
         foot_x ; foot_y; 0.0; # Left front XYZ
         foot_x ;-foot_y; 0.0; # Right front XYZ
@@ -63,17 +64,99 @@ function nominal_configuration(model::CentroidalQuadrupedWall)
     ]
 end
 
-function middle1_configuration(model::CentroidalQuadrupedWall)
+function middle1_configuration(model::CentroidalQuadrupedWall) # Shift body back
     x_shift = -0.05
-    y_shift = -0.0
     return [
-        0.0 + x_shift; y_shift; body_height; # Body XYZ
+        0.0 + x_shift; 0.0; body_height; # Body XYZ
         0.0; 0.0; 0.0; # Body orientation (MRP)
         foot_x ; foot_y; 0.0; # Left front XYZ
         foot_x ;-foot_y; 0.0; # Right front XYZ
        -foot_x ; foot_y; 0.0; # Left back XYZ
        -foot_x ;-foot_y; 0.0; # Right back XYZ
     ]
+end
+
+function middle2_configuration(model::CentroidalQuadrupedWall) # Move left_front foot to wall
+    x_shift = -0.05
+    [
+        0.0 + x_shift; 0.0; body_height; # Body XYZ
+        0.0; 0.0; 0.0; # Body orientation (MRP)
+        0.35;    foot_y; body_height; # Left front XYZ
+        foot_x ;-foot_y; 0.0; # Right front XYZ
+       -foot_x ; foot_y; 0.0; # Left back XYZ
+       -foot_x ;-foot_y; 0.0; # Right back XYZ
+    ]
+end
+
+function middle3_configuration(model::CentroidalQuadrupedWall) # Move left_front foot to wall
+    pitch_shift = -0.1 * π
+    [
+        0.0; 0.02; body_height; # Body XYZ
+        0.0; pitch_shift; 0.0; # Body orientation (MRP)
+        0.35;    foot_y; body_height; # Left front XYZ
+        foot_x ;-foot_y; 0.0; # Right front XYZ
+       -foot_x ; foot_y; 0.0; # Left back XYZ
+       -foot_x ;-foot_y; 0.0; # Right back XYZ
+    ]
+end
+
+function middle4_configuration(model::CentroidalQuadrupedWall) # Move left_front foot to wall
+    pitch_shift = -0.1 * π
+    [
+        0.0; 0.02; body_height; # Body XYZ
+        0.0; pitch_shift; 0.0; # Body orientation (MRP)
+        0.35;    foot_y; body_height; # Left front XYZ
+        0.35;   -foot_y; body_height; # Right front XYZ
+       -foot_x ; foot_y; 0.0; # Left back XYZ
+       -foot_x ;-foot_y; 0.0; # Right back XYZ
+    ]
+end
+
+# function middle2_configuration(model::CentroidalQuadrupedWall)
+#     x_shift = 0.0
+#     pitch_shift = -0.05 * π
+#     [
+#         -0.05; 0.02; body_height;
+#         0.0; pitch_shift; 0.0;
+#         0.35; foot_y; body_height;
+#         foot_x + x_shift;-foot_y; 0.0;
+#        -foot_x + x_shift; foot_y; 0.0;
+#        -foot_x + x_shift;-foot_y; 0.0;
+#     ]
+# end
+
+# function middle3_configuration(model::CentroidalQuadrupedWall)
+# 	x_shift = 0.0
+#     pitch_shift = -0.1 * π
+#     [
+#        -0.05; 0.03; body_height;
+#         0.0; pitch_shift; 0.0;
+#         0.35; foot_y; body_height;
+#         0.35;-foot_y; body_height;
+#        -foot_x + x_shift; foot_y; 0.0;
+#        -foot_x + x_shift;-foot_y; 0.0;
+#     ]
+# end
+
+# function final_configuration(model::CentroidalQuadrupedWall)
+#     x_shift = 0.0
+#     pitch_shift = -0.1 * π
+#     [
+#         0.0 + x_shift + 0.00; 0.0; body_height;
+#         0.0; pitch_shift; 0.0;
+#         0.35; foot_y; body_height;
+#         0.35;-foot_y; body_height;
+#        -foot_x + x_shift; foot_y; 0.0;
+#        -foot_x + x_shift;-foot_y; 0.0;
+#     ]
+# end
+
+function foot_arc(x_start, x_end, z_start, z_end, N)
+    rad = x_end - x_start
+    θ_rad = range(1.0 * π, stop = 0.5 * π, length=N)
+    foot_arc_x = rad * cos.(θ_rad) .+ x_start .+ rad
+    foot_arc_z = rad * sin.(θ_rad) .* z_end ./ rad .+ z_start
+    return foot_arc_x, foot_arc_z
 end
 
 function sinusoidal_interpolation(q0, q1, N)
@@ -82,178 +165,203 @@ function sinusoidal_interpolation(q0, q1, N)
     return Q
 end
 
-q1 = nominal_configuration(model)
-qT = nominal_configuration(model)
-visualize!(vis, model, [q1], Δt = h)
-qM1 = middle1_configuration(model)
-visualize!(vis, model, [qM1], Δt = h)
+q1 = middle1_configuration(model)
+# qM1 = middle1_configuration(model)
+# qM2 = middle2_configuration(model)
+# qM3 = middle3_configuration(model)
+# qT = final_configuration(model)
+qT = middle2_configuration(model)
 
 # Create reference trajectory
-q_ref = [sinusoidal_interpolation(q1, qM1, Tm)...,
-         sinusoidal_interpolation(qM1, qT, Tm)...];
+# q_ref = [
+# 	sinusoidal_interpolation(q1, qM1, Tm)...,
+# 	sinusoidal_interpolation(qM1, qM2, Tm)...,
+# 	sinusoidal_interpolation(qM2, qM3, Tm)...,
+# 	sinusoidal_interpolation(qM3, qT, Tm)...]
+q_ref = [sinusoidal_interpolation(q1, qT, Tm)...]
+
+# FL_foot_x, FL_foot_z = foot_arc(q1[7], qM1[7], 0.0, qM1[9], Tm)
+# FR_foot_x, FR_foot_z = foot_arc(q1[10], qT[10], 0.0, qT[12], Tm)
+
+FL_foot_x, FL_foot_z = foot_arc(q1[7], qT[7], 0.0, qT[9], Tm)
+FR_foot_x, FR_foot_z = foot_arc(q1[10], qT[10], 0.0, qT[12], Tm)
+
+[q_ref[i][7] = FL_foot_x[i] for i in 1:Tm]
+[q_ref[i][9] = FL_foot_z[i] for i in 1:Tm]
+[q_ref[i][10] = FR_foot_x[i] for i in 1:Tm]
+[q_ref[i][12] = FR_foot_z[i] for i in 1:Tm]
+# [q_ref[2Tm+i][10] = FR_foot_x[i] for i in 1:Tm]
+# [q_ref[2Tm+i][12] = FR_foot_z[i] for i in 1:Tm]
 q_ref = [q1, q_ref...]
-visualize!(vis, model, q_ref, Δt = h)
+
+visualize!(vis, model, q_ref, Δt=h)
 vis
+
 # Create reference state for DTO
 x_ref = [[q_ref[t]; q_ref[t+1]] for t = 1:T]
 
-# Create array of costs
+# Create array of objectives/cost
 obj = DTO.Cost{Float64}[]
 for t = 1:T
-    if t == 1
+    if t == T
         push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
-            J += 0.5 * transpose(x[1:6] - x_ref[1][1:6]) * Diagonal(1000.0 * ones(6)) * (x[1:6] - x_ref[1][1:6])
-            J += 0.5 * transpose(x[6 .+ 1:12] - x_ref[1][6 .+ 1:12]) * Diagonal(1000.0 * ones(6)) * (x[6 .+ 1:12] - x_ref[1][6 .+ 1:12])
-
-            J += 0.5 * transpose(u) * Diagonal([1.0 * ones(model.nu); zeros(nu - model.nu)]) * u
-            J += 10000.0 * u[end] # slack
-            J += 0.5 * transpose(u[model.nu + 8 .+ (1:40)]) * Diagonal(1.0e-3 * ones(40)) * u[model.nu + 8 .+ (1:40)]
-
+            J += 100 * transpose(x[1:nx] - x_ref[T]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[T])
+            
             return J
-        end,
-        nx, nu))
-    elseif t == T
+        end, nx + nθ + nx, 0))
+    elseif t == 1
         push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
-            J += 0.5 * transpose(x[1:6] - x_ref[T][1:6]) * Diagonal(1000.0 * ones(6)) * (x[1:6] - x_ref[T][1:6])
-            J += 0.5 * transpose(x[6 .+ 1:12] - x_ref[T][6 .+ 1:12]) * Diagonal(1000.0 * ones(6)) * (x[6 .+ 1:12] - x_ref[T][6 .+ 1:12])
+            v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
+            J += 0.5 * 1.0e-3 * dot(v, v)
+            J += 100 * transpose(x[1:nx] - x_ref[1]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[1])
+	        J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
+            J += 1000.0 * u[end] # slack
+            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
 
-
-            J -= 100.0 * x[36 + model.nu + 5]
             return J
-        end, nx + nθ, 0))
+        end, nx, nu))
     else
         push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
-
-            u_prev = x[nx .+ (1:nθ)]
-            w = (u - u_prev) ./ h
-            J += 0.5 * 1.0 * dot(w[1:end-1], w[1:end-1])
-
-            J += 0.5 * transpose(x[1:6] - x_ref[t][1:6]) * Diagonal(100000.0 * ones(6)) * (x[1:6] - x_ref[t][1:6])
-            J += 0.5 * transpose(x[6 .+ 1:12] - x_ref[t][6 .+ 1:12]) * Diagonal(1000.0 * ones(6)) * (x[6 .+ 1:12] - x_ref[t][6 .+ 1:12])
-
-            J += 0.5 * transpose(u) * Diagonal([1.0e-3 * ones(model.nu); zeros(nu - model.nu)]) * u
-            J += 10000.0 * u[end] # slack
-            J += 0.5 * transpose(u[model.nu + 8 .+ (1:40)]) * Diagonal(1.0e-3 * ones(40)) * u[model.nu + 8 .+ (1:40)]
-
+            v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
+            J += 0.5 * 1.0e-1 * dot(v, v)
+            u_previous = x[nx .+ (1:53)]
+            u_control = u
+            w = (u_control - u_previous) ./ h
+            J += 0.5 * 1.0e-3 * dot(w, w)
+            J += 1000 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
+            J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
+            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
+            J += 1000.0 * u[end] # slack
             return J
-        end, nx + nθ, nu))
+        end, nx + nθ + nx, nu))
     end
 end
 
-# Initial and intermediary state constraints
+# ## constraints
+ql = q1
+qu = q1
+
+# initial condition
 xl1 = [q1; q1]
 xu1 = [q1; q1]
-xlt = [-Inf * ones(nx); -Inf * ones(nθ)]
-xut = [Inf * ones(nx); Inf * ones(nθ)]
+xlt = [-Inf * ones(nx); -Inf * ones(nθ); -Inf * ones(nx)]
+xut = [Inf * ones(nx); Inf * ones(nθ); Inf * ones(nx)]
 
-# Final state constraints
-xlT = [-Inf * ones(nx); -Inf * ones(nθ)]
-xuT = [Inf * ones(nx); Inf * ones(nθ)]
+# final condition
+xlT = [-Inf * ones(nq); qT; -Inf * ones(nθ); -Inf * ones(nx)]
+xuT = [Inf * ones(nq); qT; Inf * ones(nθ); Inf * ones(nx)]
 
-# Other decision variable constraints
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
-# Create DTO.Bound array for constraints
-bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
-bndt = DTO.Bound(nx + nθ , nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
-bndT = DTO.Bound(nx + nθ , 0, state_lower=xlT, state_upper=xuT)
-bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
+bnds = DTO.Bound{Float64}[]
+push!(bnds, DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu))
+for t = 2:T-1
+    push!(bnds, DTO.Bound(nx + nθ + nx, nu,
+        state_lower=[-Inf * ones(nq); -Inf * ones(nq); -Inf * ones(nθ); -Inf * ones(nx)],
+        state_upper=[Inf * ones(nq); Inf * ones(nq); Inf * ones(nθ); Inf * ones(nx)],
+        action_lower=ul, action_upper=uu))
+end
+push!(bnds, DTO.Bound(nx + nθ + nx, 0, state_lower=xlT, state_upper=xuT))
 
-# Contact constraints
-contact_constraints_equality(model, env, h, rand(nx), rand(nu), zeros(0))
-contact_constraints_inequality_1(model, env, h, rand(nx), rand(nu), zeros(0))
-contact_constraints_inequality_t(model, env, h, rand(nx + nθ ), rand(nu), zeros(0))
-contact_constraints_inequality_T(model, env, h, rand(nx + nθ ), rand(nu), zeros(0))
+cons = DTO.Constraint{Float64}[]
+for t = 1:T
+    if t == 1
+        function constraints_1(x, u, w)
+            [
+            # equality (16)
+            contact_constraints_equality(model, env, h, x, u, w);
+            
+            # inequality (28)
+            contact_constraints_inequality_1(model, env, h, x, u, w);
 
-function constraints_1(x, u, w)
-    [
-     # equality (20)
-     contact_constraints_equality(model, env, h, x, u, w);
-     # inequality (35)
-     contact_constraints_inequality_1(model, env, h, x, u, w);
-     x[6 .+ (1:12)] - q1[6 .+ (1:12)];
-     x[18 + 6 .+ (1:12)] - q1[6 .+ (1:12)];
-    #  x[18 + 3] - q1[3];
-    ]
+            # body/feet constraints
+            x[3] - x_ref[t][3]; # body height
+            [x[i + 6] - x_ref[t][i + 6] for i in 1:12]... #Foot positions
+            ]
+        end
+        push!(cons, DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28))))
+    elseif t == T
+        function constraints_T(x, u, w)
+            [
+            # inequality (8)
+            contact_constraints_inequality_T(model, env, h, x, u, w);
+
+            # body/feet constraints
+            x[3] - x_ref[t][3]; # body height
+            [x[i + 6] - x_ref[t][i + 6] for i in 1:12]... #Foot positions
+            ]
+        end
+        push!(cons, DTO.Constraint(constraints_T, nx + nθ + nx, nu, indices_inequality=collect(0 .+ (1:8))))
+    else
+        function constraints_t(x, u, w)
+            [
+            # equality (16)
+            contact_constraints_equality(model, env, h, x, u, w);
+            # inequality (32)
+            contact_constraints_inequality_t(model, env, h, x, u, w);
+
+            # body/feet constraints
+            x[3] - x_ref[t][3]; # body height
+            [x[i + 6] - x_ref[t][i + 6] for i in 1:12]... #Foot positions
+            ]
+        end
+        push!(cons, DTO.Constraint(constraints_t, nx + nθ + nx, nu, indices_inequality=collect(16 .+ (1:32))) )
+    end
 end
 
-function constraints_t(x, u, w)
-    [
-     # equality (20)
-     contact_constraints_equality(model, env, h, x, u, w);
-     # inequality (40)
-     contact_constraints_inequality_t(model, env, h, x, u, w);
-    #  x[6 .+ (4:12)] - q1[6 .+ (4:12)];
-    #  x[18 + 6 .+ (4:12)] - q1[6 .+ (4:12)];
-    #  x[18 + 3] - q1[3];
-    ]
-end
-
-function constraints_T(x, u, w)
-    [
-     # inequality (10)
-     contact_constraints_inequality_T(model, env, h, x, u, w);
-     x[6 .+ (4:12)] - qT[6 .+ (4:12)];
-     x[18 + 6 .+ (4:12)] - qT[6 .+ (4:12)];
-     x[18 + 6 .+ 1] - qT[6 + 1];
-     x[18 + 6 .+ 3] - qT[6 + 3];
-    #  x[18 + 2] - qT[2];
-    #  x[18 + 3] - qT[3];
-    x[18 .+ (1:3)] - qT[1:3];
-    ]
-end
-
-con1 = DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(32 .+ (1:56)))
-cont = DTO.Constraint(constraints_t, nx + nθ , nu, indices_inequality=collect(32 .+ (1:64)))
-conT = DTO.Constraint(constraints_T, nx + nθ , nu, indices_inequality=collect(0 .+ (1:16)))
-cons = [con1, [cont for t = 2:T-1]..., conT];
-
-# Set up DTO problem
+# ## problem
+tolerance = 1.0e-3
 direct_solver = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
-        tol=1.0e-3,
-        constr_viol_tol=1.0e-3,
-        max_iter=100000,
+        tol=tolerance,
+        constr_viol_tol=tolerance,
+        max_iter=2000,
         max_cpu_time = 60000.0
-        ))
+        ));
 
-# Initialize problem
+# ## initialize
 x_interpolation = copy(x_ref)
-u_guess = [1.0e-4 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
+Random.seed!(0)
+u_guess = [1.0e-1 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(direct_solver, x_interpolation)
 DTO.initialize_controls!(direct_solver, u_guess)
 
-DTO.initialize_states!(direct_solver, x_sol)
-DTO.initialize_controls!(direct_solver, u_sol)
-
-# Solve the problem
+# ## solve
 @time DTO.solve!(direct_solver)
 
 # Get solution
-x_sol, u_sol = DTO.get_trajectory(direct_solver)
+x_sol, u_sol = DTO.get_trajectory(direct_solver);
 
 # Visualize solution
-visualize!(vis, model, [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...], Δt=h)
-
+visualize!(vis, model, [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...], Δt=h);
+vis
 # Extract decision variables for CI-MPC
-N_first = 10
-N_last = 20
-qm = [[x_sol[1][model.nq .+ (1:model.nq)] for t = 1:N_first]..., x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]..., [x_sol[end][model.nq .+ (1:model.nq)] for t = 1:N_last]...]
-vm = [[(x_sol[1][model.nq .+ (1:model.nq)] - x_sol[1][0 .+ (1:model.nq)]) ./ h for t = 1:N_first]..., [(x[model.nq .+ (1:model.nq)] - x[0 .+ (1:model.nq)]) ./ h for x in x_sol]..., [(x_sol[end][model.nq .+ (1:model.nq)] - x_sol[end][0 .+ (1:model.nq)]) ./ h for t = 1:N_last]...]
-um = [[u_sol[1][1:model.nu] for t = 1:N_first]..., [u[1:model.nu] for u in u_sol]..., [u_sol[end][1:model.nu] for t = 1:N_last]...]
-γm = [[u_sol[1][model.nu .+ (1:model.nc)] for t = 1:N_first]..., [u[model.nu .+ (1:model.nc)] for u in u_sol]..., [u_sol[end][model.nu .+ (1:model.nc)] for t = 1:N_last]...]
-bm = [[u_sol[1][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u[model.nu + model.nc .+ (1:model.nc*4)] for u in u_sol]..., [u_sol[end][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_last]...]
-ψm = [[u_sol[1][model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for t = 1:N_first]..., [u[model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for u in u_sol]..., [u_sol[end][model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for t = 1:N_last]...]
-ηm = [[u_sol[1][model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u[model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for u in u_sol]..., [u_sol[end][model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for t = 1:N_last]...]
+# N_first = 10
+# N_last = 20
+# qm = [[x_sol[1][model.nq .+ (1:model.nq)] for t = 1:N_first]..., x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]..., [x_sol[end][model.nq .+ (1:model.nq)] for t = 1:N_last]...]
+# vm = [[(x_sol[1][model.nq .+ (1:model.nq)] - x_sol[1][0 .+ (1:model.nq)]) ./ h for t = 1:N_first]..., [(x[model.nq .+ (1:model.nq)] - x[0 .+ (1:model.nq)]) ./ h for x in x_sol]..., [(x_sol[end][model.nq .+ (1:model.nq)] - x_sol[end][0 .+ (1:model.nq)]) ./ h for t = 1:N_last]...]
+# um = [[u_sol[1][1:model.nu] for t = 1:N_first]..., [u[1:model.nu] for u in u_sol]..., [u_sol[end][1:model.nu] for t = 1:N_last]...]
+# γm = [[u_sol[1][model.nu .+ (1:model.nc)] for t = 1:N_first]..., [u[model.nu .+ (1:model.nc)] for u in u_sol]..., [u_sol[end][model.nu .+ (1:model.nc)] for t = 1:N_last]...]
+# bm = [[u_sol[1][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u[model.nu + model.nc .+ (1:model.nc*4)] for u in u_sol]..., [u_sol[end][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_last]...]
+# ψm = [[u_sol[1][model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for t = 1:N_first]..., [u[model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for u in u_sol]..., [u_sol[end][model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for t = 1:N_last]...]
+# ηm = [[u_sol[1][model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u[model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for u in u_sol]..., [u_sol[end][model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for t = 1:N_last]...]
+
+qm = [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...]
+vm = [[(x[model.nq .+ (1:model.nq)] - x[0 .+ (1:model.nq)]) ./ h for x in x_sol]...]
+um = [[u[1:model.nu] for u in u_sol]...]
+γm = [[u[model.nu .+ (1:model.nc)] for u in u_sol]...]
+bm = [[u[model.nu + model.nc .+ (1:model.nc*4)] for u in u_sol]...]
+ψm = [[u[model.nu + model.nc + model.nc*4 .+ (1:model.nc)] for u in u_sol]...]
+ηm = [[u[model.nu + model.nc + model.nc*4 + model.nc .+ (1:model.nc*4)] for u in u_sol]...]
 μm = model.μ_world
 hm = h
 
-plot([qm[i][3] for i in 1:size(qm)[1]])
+# plot([qm[i][3] for i in 1:size(qm)[1]])
 
 # Save reference
 using JLD2
-@save joinpath(@__DIR__, "stand_wall_two_steps_v1.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "stand_wall_two_steps_part2.jld2") qm um γm bm ψm ηm μm hm x_sol u_sol x_ref
