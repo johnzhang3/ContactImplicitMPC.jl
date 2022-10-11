@@ -26,9 +26,11 @@ vis = LciMPC.Visualizer()
 LciMPC.open(vis)
 
 # ## horizon
-Tm = 10
-T = Tm
-h = 0.05
+Tm = 20
+initial_padding = 5
+final_padding = 5
+T = Tm + initial_padding + final_padding - 1
+h = 0.025
 
 # Get simulation and model
 s = get_simulation("centroidal_quadruped_wall", "flat_3D_lc", "flat")
@@ -90,8 +92,9 @@ end
 
 function middle3_configuration(model::CentroidalQuadrupedWall) # Move left_front foot to wall
     pitch_shift = -0.1 * π
+    x_shift = -0.05
     [
-        0.0; 0.02; body_height; # Body XYZ
+        0.0 + x_shift; 0.02; body_height; # Body XYZ
         0.0; pitch_shift; 0.0; # Body orientation (MRP)
         0.35;    foot_y; body_height; # Left front XYZ
         foot_x ;-foot_y; 0.0; # Right front XYZ
@@ -102,8 +105,22 @@ end
 
 function middle4_configuration(model::CentroidalQuadrupedWall) # Move left_front foot to wall
     pitch_shift = -0.1 * π
+    x_shift = -0.05
     [
-        0.0; 0.02; body_height; # Body XYZ
+        0.0 + x_shift; 0.02; body_height; # Body XYZ
+        0.0; pitch_shift; 0.0; # Body orientation (MRP)
+        0.35;    foot_y; body_height; # Left front XYZ
+        0.35;   -foot_y; body_height; # Right front XYZ
+       -foot_x ; foot_y; 0.0; # Left back XYZ
+       -foot_x ;-foot_y; 0.0; # Right back XYZ
+    ]
+end
+
+function middle5_configuration(model::CentroidalQuadrupedWall) # Move left_front foot to wall
+    pitch_shift = -0.1 * π
+    x_shift = -0.0
+    [
+        0.0 + x_shift; 0.02; body_height; # Body XYZ
         0.0; pitch_shift; 0.0; # Body orientation (MRP)
         0.35;    foot_y; body_height; # Left front XYZ
         0.35;   -foot_y; body_height; # Right front XYZ
@@ -165,12 +182,12 @@ function sinusoidal_interpolation(q0, q1, N)
     return Q
 end
 
-q1 = middle1_configuration(model)
+q1 = middle4_configuration(model)
 # qM1 = middle1_configuration(model)
 # qM2 = middle2_configuration(model)
 # qM3 = middle3_configuration(model)
 # qT = final_configuration(model)
-qT = middle2_configuration(model)
+qT = middle4_configuration(model)
 
 # Create reference trajectory
 # q_ref = [
@@ -192,7 +209,7 @@ FR_foot_x, FR_foot_z = foot_arc(q1[10], qT[10], 0.0, qT[12], Tm)
 [q_ref[i][12] = FR_foot_z[i] for i in 1:Tm]
 # [q_ref[2Tm+i][10] = FR_foot_x[i] for i in 1:Tm]
 # [q_ref[2Tm+i][12] = FR_foot_z[i] for i in 1:Tm]
-q_ref = [q1, q_ref...]
+q_ref = [[q1 for i in 1:initial_padding]..., q_ref..., [qT for i in 1:final_padding]...]
 
 visualize!(vis, model, q_ref, Δt=h)
 vis
@@ -279,7 +296,7 @@ for t = 1:T
             contact_constraints_inequality_1(model, env, h, x, u, w);
 
             # body/feet constraints
-            x[3] - x_ref[t][3]; # body height
+            # x[3] - x_ref[t][3]; # body height
             [x[i + 6] - x_ref[t][i + 6] for i in 1:12]... #Foot positions
             ]
         end
@@ -291,7 +308,7 @@ for t = 1:T
             contact_constraints_inequality_T(model, env, h, x, u, w);
 
             # body/feet constraints
-            x[3] - x_ref[t][3]; # body height
+            # x[3] - x_ref[t][3]; # body height
             [x[i + 6] - x_ref[t][i + 6] for i in 1:12]... #Foot positions
             ]
         end
@@ -305,7 +322,7 @@ for t = 1:T
             contact_constraints_inequality_t(model, env, h, x, u, w);
 
             # body/feet constraints
-            x[3] - x_ref[t][3]; # body height
+            # x[3] - x_ref[t][3]; # body height
             [x[i + 6] - x_ref[t][i + 6] for i in 1:12]... #Foot positions
             ]
         end
@@ -319,13 +336,13 @@ direct_solver = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         tol=tolerance,
         constr_viol_tol=tolerance,
-        max_iter=2000,
+        max_iter=  10000,
         max_cpu_time = 60000.0
         ));
 
 # ## initialize
 x_interpolation = copy(x_ref)
-Random.seed!(0)
+# Random.seed!(0)
 u_guess = [1.0e-1 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(direct_solver, x_interpolation)
 DTO.initialize_controls!(direct_solver, u_guess)
@@ -360,8 +377,9 @@ bm = [[u[model.nu + model.nc .+ (1:model.nc*4)] for u in u_sol]...]
 μm = model.μ_world
 hm = h
 
-# plot([qm[i][3] for i in 1:size(qm)[1]])
+# plot([qm[i][12] for i in 1:size(qm)[1]])
+plot(hcat(qm...)', labels="")
 
 # Save reference
 using JLD2
-@save joinpath(@__DIR__, "stand_wall_two_steps_part2.jld2") qm um γm bm ψm ηm μm hm x_sol u_sol x_ref
+@save joinpath(@__DIR__, "stand_wall_two_steps_part5.jld2") qm um γm bm ψm ηm μm hm x_sol u_sol x_ref

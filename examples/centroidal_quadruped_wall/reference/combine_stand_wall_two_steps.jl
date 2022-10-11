@@ -39,15 +39,18 @@ x_sol_2 = x_sol; u_sol_2 = u_sol; x_ref_2 = x_ref;
 x_sol_3 = x_sol; u_sol_3 = u_sol; x_ref_3 = x_ref;
 @load joinpath(@__DIR__, "stand_wall_two_steps_part4.jld2") x_sol u_sol x_ref
 x_sol_4 = x_sol; u_sol_4 = u_sol; x_ref_4 = x_ref;
+@load joinpath(@__DIR__, "stand_wall_two_steps_part5.jld2") x_sol u_sol x_ref
+x_sol_5 = x_sol; u_sol_5 = u_sol; x_ref_5 = x_ref;
 
-x_sol = [x_sol_1..., x_sol_2..., x_sol_3..., x_sol_4...]
-u_sol = [u_sol_1..., u_sol_1[end], u_sol_2..., u_sol_2[end], u_sol_3..., u_sol_3[end], u_sol_4...]
-x_ref = [x_ref_1..., x_ref_2..., x_ref_3..., x_ref_4...]
+x_sol = [x_sol_1..., x_sol_2..., x_sol_3..., x_sol_4..., x_sol_5...]
+u_sol = [u_sol_1..., u_sol_1[end], u_sol_2..., u_sol_2[end], u_sol_3...,
+         u_sol_3[end], u_sol_4..., u_sol_4[end], u_sol_5...]
+x_ref = [x_ref_1..., x_ref_2..., x_ref_3..., x_ref_4..., x_ref_5...]
 
 # Pad the end
-x_sol = [x_sol..., [x_sol[end] for i = 1:4]...]
-u_sol = [u_sol..., [u_sol[end] for i = 1:4]...]
-x_ref = [x_ref..., [x_ref[end] for i = 1:4]...]
+x_sol = [x_sol..., [x_sol[end] for i = 1:10]...]
+u_sol = [u_sol..., [u_sol[end] for i = 1:10]...]
+x_ref = [x_ref..., [x_ref[end] for i = 1:10]...]
 
 # Visualize trajectory
 visualize!(vis, model, [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...], Δt=h);
@@ -215,5 +218,5 @@ bm = [[u_sol[1][model.nu + model.nc .+ (1:model.nc*4)] for t = 1:N_first]..., [u
 μm = model.μ_world
 hm = h
 
-@save joinpath(@__DIR__, "stand_wall_two_steps_combined_v2.jld2") qm um γm bm ψm ηm μm hm x_sol u_sol x_ref
+@save joinpath(@__DIR__, "stand_wall_two_steps_combined_v3.jld2") qm um γm bm ψm ηm μm hm x_sol u_sol x_ref
 @load joinpath(@__DIR__, "stand_wall_two_steps_combined_v1.jld2") qm um γm bm ψm ηm μm hm x_sol u_sol x_ref
